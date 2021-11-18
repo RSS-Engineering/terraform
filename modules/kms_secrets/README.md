@@ -4,7 +4,7 @@ _kms_secrets_ allows you to store multiple secrets in your repository in encrypt
 
 ```terraform
 module "secrets" {
-  source = "git@github.com:RSS-Engineering/terraform.git//modules/kms_secrets?ref={commit}"
+  source = "github.com/RSS-Engineering/terraform.git?ref={commit}/modules/kms_secrets"
 
   context = {
     environment = "dev"

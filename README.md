@@ -40,7 +40,7 @@ Terraform modules in this repository can be referenced like (_kms_secrets_ for e
 
 ```terraform
 module "secrets" {
-  source = "git@github.com:RSS-Engineering/terraform.git//modules/kms_secrets?ref={commit}"
+  source = "github.com/RSS-Engineering/terraform.git?ref={commit}/modules/kms_secrets"
 
   ...
 }
