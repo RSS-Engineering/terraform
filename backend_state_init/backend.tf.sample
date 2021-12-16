@@ -1,0 +1,54 @@
+terraform {
+  required_version = ">= 0.14.2"
+  required_providers {
+    aws = {
+      source  = "hashicorp/aws"
+    }
+  }
+}
+
+provider "aws" {
+  region = "us-west-2"
+}
+
+locals {
+  # https://one.rackspace.com/pages/viewpage.action?pageId=532306599
+  # Modified the values according to need and standards
+  global_tags = {
+    Terraform       = "managed"
+    application     = "[project_name]-backend",
+    environment     = "ENV",
+    confidentiality = "Rackspace Public",
+    tag-std         = "v1.0",
+    appid-or-sso    = "APPID",
+    iac-repository  = "REPO"
+  }
+}
+
+resource "aws_s3_bucket" "bucket" {
+ # Be careful of s3 bucket name [globally unique]
+  bucket = "[project_name]-backend-terraform-state-[environment]"
+  versioning {
+    enabled = false
+  }
+  server_side_encryption_configuration {
+    rule {
+      apply_server_side_encryption_by_default {
+        sse_algorithm = "AES256"
+      }
+    }
+  }
+  tags = local.global_tags
+}
+
+resource "aws_dynamodb_table" "terraform-lock" {
+  name           = "[project_name]-backend-terraform-lock"
+  read_capacity  = 5
+  write_capacity = 5
+  hash_key       = "LockID"
+  attribute {
+    name = "LockID"
+    type = "S"
+  }
+  tags = local.global_tags
+}

@@ -10,6 +10,21 @@ The recommendations in this repository assume a multiple-account structure where
 
 Terraform needs to store the current state of each environment in a place where it can be shared among developers. The recommended configuration is an S3 bucket and a simple DynamoDB table for locking. For more information about how to set this up refer to https://www.terraform.io/docs/language/settings/backends/s3.html
 
+Terraform sample under file [`backend_state_init/backend.tf.sample`](backend_state_init/backend_state_init/backend.tf.sample)
+
+#### Steps:-
+
+```bash
+cp backend_state_init/backend.tf.sample backend_state_init/backend.tf
+```
+
+```bash
+cd backend_state_init/
+terraform init
+terraform plan
+terraform apply
+```
+
 ### Project Repository Structure
 
 To achieve code-reuse and environment segregation, place your terraform code in a sub-directory called _infrastructure_ with a structure like:
