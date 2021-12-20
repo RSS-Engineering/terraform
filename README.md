@@ -26,6 +26,8 @@ terraform plan
 terraform apply
 ```
 
+Remove the folder `backend_state_init/` once done setting backend state configurations.
+
 ### Project Repository Structure
 
 To achieve code-reuse and environment segregation, place your terraform code in a sub-directory called _infrastructure_ with a structure like:
