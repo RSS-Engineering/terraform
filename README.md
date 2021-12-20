@@ -13,9 +13,9 @@ Terraform needs to store the current state of each environment in a place where 
 There is a [sample-file](backend_state_init/backend.tf.sample) that can be used to set this up automatically.
 
 #### Steps:-
-Copy the sample file to terraform file.
+Move the sample file to terraform file and then remove the sample file. 
 ```bash
-cp backend_state_init/backend.tf.sample backend_state_init/backend.tf
+mv backend_state_init/backend.tf.sample backend_state_init/backend.tf
 ```
  
 ```bash
