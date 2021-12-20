@@ -10,16 +10,17 @@ The recommendations in this repository assume a multiple-account structure where
 
 Terraform needs to store the current state of each environment in a place where it can be shared among developers. The recommended configuration is an S3 bucket and a simple DynamoDB table for locking. For more information about how to set this up refer to https://www.terraform.io/docs/language/settings/backends/s3.html
 
-Terraform sample under file [`backend_state_init/backend.tf.sample`](backend_state_init/backend_state_init/backend.tf.sample)
+There is a [sample-file](backend_state_init/backend.tf.sample) that can be used to set this up automatically.
 
 #### Steps:-
-
+Copy the sample file to terraform file.
 ```bash
 cp backend_state_init/backend.tf.sample backend_state_init/backend.tf
 ```
-
+ 
 ```bash
 cd backend_state_init/
+# Execute the terraform script for setting backend states in s3 and dynamo db.
 terraform init
 terraform plan
 terraform apply
