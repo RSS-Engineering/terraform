@@ -10,6 +10,48 @@ The recommendations in this repository assume a multiple-account structure where
 
 Terraform needs to store the current state of each environment in a place where it can be shared among developers. The recommended configuration is an S3 bucket and a simple DynamoDB table for locking. For more information about how to set this up refer to https://www.terraform.io/docs/language/settings/backends/s3.html
 
+There is a [sample-file](backend_state_init/backend.tf.sample) that can be used to set this up automatically.
+
+#### Steps:-
+Move the sample file to terraform file and then remove the sample file. 
+```bash
+mv backend_state_init/backend.tf.sample backend_state_init/backend.tf
+```
+
+Now change the metadata `global_tags` inside the  `backend.tf` file and modified the values according to requirement:-
+- APPID
+- REPO
+- ENVIRONMENT
+- APPLICATION
+
+Sample config:-
+```hcl
+locals {
+  # https://one.rackspace.com/pages/viewpage.action?pageId=532306599
+  # Modified the values according to need and standards
+  global_tags = {
+    Terraform       = "managed"
+    application     = "tf-state-store",
+    environment     = "test",
+    confidentiality = "Rackspace Public",
+    tag-std         = "v1.0",
+    appid-or-sso    = "puni9869",
+    iac-repository  = "https://github.com/RSS-Engineering/terraform"
+  }
+}
+```
+
+ 
+```bash
+cd backend_state_init/
+# Execute the terraform script for setting backend states in s3 and dynamo db.
+terraform init
+terraform plan
+terraform apply
+```
+
+Remove the folder `backend_state_init/` once done setting backend state configurations.
+
 ### Project Repository Structure
 
 To achieve code-reuse and environment segregation, place your terraform code in a sub-directory called _infrastructure_ with a structure like:
