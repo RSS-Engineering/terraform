@@ -16,12 +16,12 @@ locals {
   # Modified the values according to need and standards
   global_tags = {
     Terraform       = "managed"
-    application     = "tf-state-store",
-    environment     = "test",
+    application     = "CHANGE_THIS",
+    environment     = "CHANGE_THIS",
     confidentiality = "Rackspace Public",
     tag-std         = "v1.0",
-    appid-or-sso    = "puni9869",
-    iac-repository  = "https://github.com/RSS-Engineering/terraform"
+    appid-or-sso    = "CHANGE_THIS",
+    iac-repository  = "CHANGE_THIS"
   }
 }
 

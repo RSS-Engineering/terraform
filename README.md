@@ -17,6 +17,30 @@ Move the sample file to terraform file and then remove the sample file.
 ```bash
 mv backend_state_init/backend.tf.sample backend_state_init/backend.tf
 ```
+
+Now change the metadata `global_tags` inside the  `backend.tf` file and modified the values according to requirement:-
+- APPID
+- REPO
+- ENVIRONMENT
+- APPLICATION
+
+Sample config:-
+```hcl
+locals {
+  # https://one.rackspace.com/pages/viewpage.action?pageId=532306599
+  # Modified the values according to need and standards
+  global_tags = {
+    Terraform       = "managed"
+    application     = "tf-state-store",
+    environment     = "test",
+    confidentiality = "Rackspace Public",
+    tag-std         = "v1.0",
+    appid-or-sso    = "puni9869",
+    iac-repository  = "https://github.com/RSS-Engineering/terraform"
+  }
+}
+```
+
  
 ```bash
 cd backend_state_init/
