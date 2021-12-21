@@ -16,18 +16,18 @@ locals {
   # Modified the values according to need and standards
   global_tags = {
     Terraform       = "managed"
-    application     = "[project_name]-backend",
-    environment     = "ENV",
+    application     = "tf-state-store",
+    environment     = "test",
     confidentiality = "Rackspace Public",
     tag-std         = "v1.0",
-    appid-or-sso    = "APPID",
-    iac-repository  = "REPO"
+    appid-or-sso    = "puni9869",
+    iac-repository  = "https://github.com/RSS-Engineering/terraform"
   }
 }
 
 resource "aws_s3_bucket" "bucket" {
  # Be careful of s3 bucket name [globally unique]
-  bucket = "[project_name]-backend-terraform-state-[environment]"
+  bucket = "${local.global_tags.application}-${local.global_tags.environment}"
   versioning {
     enabled = false
   }
@@ -42,7 +42,7 @@ resource "aws_s3_bucket" "bucket" {
 }
 
 resource "aws_dynamodb_table" "terraform-lock" {
-  name           = "[project_name]-backend-terraform-lock"
+  name           = "${local.global_tags.application}-lock"
   read_capacity  = 5
   write_capacity = 5
   hash_key       = "LockID"
