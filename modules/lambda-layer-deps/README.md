@@ -1,4 +1,4 @@
-# terraform-aws-lambda-layer
+# lambda-layer-deps
 
 This terraform module allows you to package all of your project's dependencies into a lambda layer, leaving your lambda nice and lean (just your application code).
 Currently it supports the following dependency managers:
