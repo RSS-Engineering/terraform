@@ -128,7 +128,7 @@ class Workflow(ABC):
             exit(1)
 
     def run(self):
-        build_layer_dir = path.join(self.build_dir, 'terraform-aws-lambda-layer',
+        build_layer_dir = path.join(self.build_dir, 'lambda-layer-deps',
                                     ContentHash([self.dependency_lock_file, __file__]).generate())
         archive_file = f"{build_layer_dir}.zip"
         if path.exists(archive_file):
