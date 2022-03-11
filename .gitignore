@@ -6,3 +6,4 @@
 .terraform.lock.hcl
 builds
 node_modules
+package.log
