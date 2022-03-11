@@ -1,1 +1,8 @@
 .idea
+.terraform
+*.tfstate
+*.tfstate.*
+*.tfvars
+.terraform.lock.hcl
+builds
+node_modules

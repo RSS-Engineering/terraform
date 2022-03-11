@@ -1,0 +1,9 @@
+DEBUG: Creating build layer directory: ./builds/terraform-aws-lambda-layer/e37fb8de2019c25dfa38319a74e7e5b0
+DEBUG: Creating runtime directory: ./builds/terraform-aws-lambda-layer/e37fb8de2019c25dfa38319a74e7e5b0/nodejs/
+DEBUG: Copying dependency lock file ./package-lock.json to ./builds/terraform-aws-lambda-layer/e37fb8de2019c25dfa38319a74e7e5b0/nodejs/
+DEBUG: Copying dependency file ./package.json to ./builds/terraform-aws-lambda-layer/e37fb8de2019c25dfa38319a74e7e5b0/nodejs/
+DEBUG: Changing directory to ./builds/terraform-aws-lambda-layer/e37fb8de2019c25dfa38319a74e7e5b0/nodejs/
+DEBUG: Installing requirements
+DEBUG: Running: "docker run --rm -v "$PWD":/var/task lambci/lambda:build-python3.8 /bin/sh -c cd /var/task && npm install --production"
+DEBUG: Normalizing file utime
+DEBUG: Creating archive: ./builds/terraform-aws-lambda-layer/e37fb8de2019c25dfa38319a74e7e5b0.zip

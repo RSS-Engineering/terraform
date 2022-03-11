@@ -1,0 +1,11 @@
+DEBUG: Creating build layer directory: ./builds/terraform-aws-lambda-layer/8e9da44e61e57d23aecbea80d51bc4f4
+DEBUG: Creating runtime directory: ./builds/terraform-aws-lambda-layer/8e9da44e61e57d23aecbea80d51bc4f4/python/lib/python3.8/site-packages/
+DEBUG: Copying package lock file ./poetry.lock to ./builds/terraform-aws-lambda-layer/8e9da44e61e57d23aecbea80d51bc4f4/python/lib/python3.8/site-packages/
+DEBUG: Copying project file ./pyproject.toml to ./builds/terraform-aws-lambda-layer/8e9da44e61e57d23aecbea80d51bc4f4/python/lib/python3.8/site-packages/
+DEBUG: Changing directory to ./builds/terraform-aws-lambda-layer/8e9da44e61e57d23aecbea80d51bc4f4/python/lib/python3.8/site-packages/
+DEBUG: Building requirements since poetry does not support targeting a directory
+DEBUG: Running: "poetry export --without-hashes -f requirements.txt -o requirements.txt"
+DEBUG: Installing requirements
+DEBUG: Running: "docker run --rm -v "$PWD":/var/task lambci/lambda:build-python3.8 /bin/sh -c cd /var/task && pip3 install --prefix= -r requirements.txt --target ."
+DEBUG: Normalizing file utime
+DEBUG: Creating archive: ./builds/terraform-aws-lambda-layer/8e9da44e61e57d23aecbea80d51bc4f4.zip
