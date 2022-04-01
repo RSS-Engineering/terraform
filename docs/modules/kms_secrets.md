@@ -60,12 +60,12 @@ The following arguments are supported:
       ```bash
       aws kms encrypt --key-id {kms_key_id} --plaintext fileb://plaintext-password --encryption-context environment=dev --output text --query CiphertextBlob
       ```
-      > **Note**: The _encryption-context_ provided here must match the _context_ property provided to kms_secrets*
+      > **Note**: The _encryption-context_ provided here must match the _context_ property provided to the kms_secrets module.
 
     3. The output of the previous step is the value to use for `ciphertext`.
 
 
-  * `secretsmanager_key` - (Optional) A string value key used to save a hash of the `secrets` in SecretsManager 
+  * `secretsmanager_key` - (Optional) A string value key used to save a hash of the `secrets` in SecretsManager in order to access the secrets after deployment. 
 
 ## Attributes Reference
 
@@ -75,7 +75,7 @@ In addition to all arguments above, the following attributes are exported:
 
 * `plaintext` - A map of each secret key to its decrypted value for use in other resources attributes. This attribute is marked as _sensitive_ to prevent it from appearing in plaintext in console output.
   
-    Example reference:
+    Example usage:
 
     ```terraform
     module.secrets.plaintext["password"]
