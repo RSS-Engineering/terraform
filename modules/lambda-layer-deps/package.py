@@ -7,6 +7,7 @@ import sys
 from abc import ABC, abstractmethod
 from contextlib import contextmanager
 from os import path, makedirs, getcwd, chdir, walk, utime
+from shlex import quote
 from shutil import copy, make_archive, rmtree
 
 logging.basicConfig(format="%(levelname)s: %(message)s", filename='package.log', filemode='w', level=logging.DEBUG)
@@ -78,7 +79,11 @@ def run(*args, **kwargs):
     """
     logging.debug(f"Running: {format_command(args)}")
     sys.stdout.flush()
-    subprocess.run(args, **kwargs)
+    try:
+        subprocess.run(args, **kwargs)
+    except subprocess.CalledProcessError as err:
+        logging.error(f'Command failed: {err.stderr}')
+        raise err
 
 
 def normalize_file_timestamps(runtime_dir):
@@ -110,10 +115,10 @@ class ContentHash:
 
 class Workflow(ABC):
     def __init__(self, runtime, dependency_lock_file, dependency_file, docker_image=None,
-                 pre_install_docker_commands=[]):
+                 pre_package_commands=[]):
         self.runtime = runtime
         self.docker_image = docker_image
-        self.preinstall_docker_commands = pre_install_docker_commands
+        self.pre_package_commands = pre_package_commands
         self.dependency_lock_file = dependency_lock_file
         self.package_dir = path.dirname(self.dependency_lock_file)
         self.dependency_file = path.join(self.package_dir, dependency_file)
@@ -169,8 +174,8 @@ class Workflow(ABC):
 
 
 class PoetryWorkflow(Workflow):
-    def __init__(self, runtime, dependency_lock_file, docker_image=None, pre_install_docker_commands=[]):
-        super().__init__(runtime, dependency_lock_file, 'pyproject.toml', docker_image, pre_install_docker_commands)
+    def __init__(self, runtime, dependency_lock_file, docker_image=None, pre_package_commands=[]):
+        super().__init__(runtime, dependency_lock_file, 'pyproject.toml', docker_image, pre_package_commands)
 
     @property
     def pip_cmd(self):
@@ -182,9 +187,9 @@ class PoetryWorkflow(Workflow):
                    capture_output=True)
 
     def install(self):
-        install_cmd = f'/bin/sh -c cd /var/task && {self.pip_cmd} install --prefix= -r requirements.txt --target .'
-        docker_cmd = f'docker run --rm -v "$PWD":/var/task {self.docker_image}'
-        commands = ' '.join([docker_cmd, ' && '.join(self.preinstall_docker_commands + [install_cmd])])
+        install_cmd = f'cd /var/task && {self.pip_cmd} install --prefix= -r requirements.txt --target .'
+        docker_cmd = f'docker run --rm -v "$PWD":/var/task {self.docker_image} /bin/sh -c'
+        commands = ' '.join([docker_cmd, quote(' && '.join(self.pre_package_commands + [install_cmd]))])
         return run(commands, shell=True, check=True, capture_output=True)
 
     def get_runtime_dir(self, build_layer_dir):
@@ -192,13 +197,13 @@ class PoetryWorkflow(Workflow):
 
 
 class NpmWorkflow(Workflow):
-    def __init__(self, runtime, dependency_lock_file, docker_image=None, pre_install_docker_commands=[]):
-        super().__init__(runtime, dependency_lock_file, 'package.json', docker_image, pre_install_docker_commands)
+    def __init__(self, runtime, dependency_lock_file, docker_image=None, pre_package_commands=[]):
+        super().__init__(runtime, dependency_lock_file, 'package.json', docker_image, pre_package_commands)
 
     def install(self):
-        install_cmd = f'/bin/sh -c cd /var/task && npm install --production'
-        docker_cmd = f'docker run --rm -v "$PWD":/var/task {self.docker_image}'
-        commands = ' '.join([docker_cmd, ' && '.join(self.preinstall_docker_commands + [install_cmd])])
+        install_cmd = f'cd /var/task && npm install --production'
+        docker_cmd = f'docker run --rm -v "$PWD":/var/task {self.docker_image} /bin/sh -c'
+        commands = ' '.join([docker_cmd, quote(' && '.join(self.pre_package_commands + [install_cmd]))])
         return run(commands, shell=True, check=True, capture_output=True)
 
     def get_runtime_dir(self, build_layer_dir):
@@ -206,13 +211,13 @@ class NpmWorkflow(Workflow):
 
 
 class YarnWorkflow(Workflow):
-    def __init__(self, runtime, dependency_lock_file, docker_image=None, pre_install_docker_commands=[]):
-        super().__init__(runtime, dependency_lock_file, 'package.json', docker_image, pre_install_docker_commands)
+    def __init__(self, runtime, dependency_lock_file, docker_image=None, pre_package_commands=[]):
+        super().__init__(runtime, dependency_lock_file, 'package.json', docker_image, pre_package_commands)
 
     def install(self):
-        install_cmd = f'/bin/sh -c cd /var/task && yarn install --production'
-        docker_cmd = f'docker run --rm -v "$PWD":/var/task {self.docker_image}'
-        commands = ' '.join([docker_cmd, ' && '.join(self.preinstall_docker_commands + [install_cmd])])
+        install_cmd = f'cd /var/task && yarn install --production'
+        docker_cmd = f'docker run --rm -v "$PWD":/var/task {self.docker_image} /bin/sh -c'
+        commands = ' '.join([docker_cmd, quote(' && '.join(self.pre_package_commands + [install_cmd]))])
         return run(commands, shell=True, check=True, capture_output=True)
 
     def get_runtime_dir(self, build_layer_dir):
@@ -233,7 +238,7 @@ def main():
 
     archive_file = workflow(
         query["runtime"], query["dependency_lock_file"], query.get("docker_image"),
-        query.get("pre_install_docker_commands", [])).run()
+        json.loads(query.get("pre_package_commands"))).run()
 
     print(json.dumps({'output_path': archive_file}))
 
