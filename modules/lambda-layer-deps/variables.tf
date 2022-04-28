@@ -48,3 +48,9 @@ variable license_info {
   type        = string
   default     = null
 }
+
+variable "pre_package_commands" {
+  description = "Command to run on docker image before packaging step"
+  type        = list(string)
+  default     = []
+}
