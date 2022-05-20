@@ -1,21 +1,24 @@
 # Recommended Infrastructure Topology
 
-The recommendations in this repository assume a multiple-account structure where each project/environment has its own provider (AWS) account. In some cases, there may be a master account to hold common resources but projects should try to keep resources as separate as possible for security and asset-management reasons. ([RAX.IO talk](https://web.microsoftstream.com/video/10e4abe9-fcf6-4a01-b1b7-6f4919a0a28b?channelId=3237e715-5c23-4833-a0a5-1690a7437c3a)) ([further reading](https://www.terraform.io/docs/cloud/guides/recommended-practices/part2.html))
+The recommendations in this repository assume a multiple-account structure where each project/environment has its own provider (AWS) account. In some cases, there may be a master account to hold common resources but projects should try to keep resources as separate as possible for security and asset-management reasons.
+
+- [RAX.IO talk](https://web.microsoftstream.com/video/10e4abe9-fcf6-4a01-b1b7-6f4919a0a28b?channelId=3237e715-5c23-4833-a0a5-1690a7437c3a)
+- [further reading](https://www.terraform.io/docs/cloud/guides/recommended-practices/part2.html)
 
 ## Project Repository Structure
 
 To achieve code-reuse and environment segregation, place your terraform code in a sub-directory called _infrastructure_ with a structure like:
 
-```
-- infrastructure
-  - env
-    - staging
+```text
+- infrastructure/
+  - env/
+    - staging/
       - conf.tf
       - main.tf
-    - production
+    - production/
       - conf.tf
       - main.tf
-  - modules
+  - modules/
     - [project-specific modules]
   - main.tf
   - variables.tf
@@ -41,7 +44,7 @@ Terraform needs to store the current state of each environment in a place where 
 ### Setting up Remote State
 
 Move the [sample-file](https://github.com/RSS-Engineering/terraform/blob/main/backend_state_init/backend.tf.sample) to terraform file and then remove the sample file. 
-```bash
+```shell
 mv backend_state_init/backend.tf.sample backend_state_init/backend.tf
 ```
 
@@ -67,9 +70,8 @@ locals {
   }
 }
 ```
-
  
-```bash
+```shell
 cd backend_state_init/
 # Execute the terraform script for setting backend states in s3 and dynamo db.
 terraform init

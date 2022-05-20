@@ -31,7 +31,7 @@ No modules.
 | Name | Type |
 |------|------|
 | [aws_lambda_layer_version.this](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/lambda_layer_version) | resource |
-| [external_external.build](https://registry.terraform.io/providers/hashicorp/external/latest/docs/data-sources/external) | data source |
+| [external_data_source.build](https://registry.terraform.io/providers/hashicorp/external/latest/docs/data-sources/data_source) | data source |
 
 ## Inputs
 

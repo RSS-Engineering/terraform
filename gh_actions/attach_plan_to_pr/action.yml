@@ -1,0 +1,128 @@
+# action.yml
+name: 'Build Terraform Plan'
+description: 'Builds a terraform plan'
+author: 'Timothy Farrell'
+
+inputs:
+  terraform_version:
+    description: 'Terraform version'
+    required: true
+  root:
+    description: 'Run terraform in this subdirectory. Passed to -chdir'
+    required: true
+  validate_format:
+    description: 'Validate the tf file format'
+    required: false
+    default: 'true'
+  cache_providers:
+    description: 'Set to "" to not try to cache providers'
+    required: false
+    default: 'true'
+  add_plan_to_pr:
+    description: 'For Pull Request events, add a plan comment to the current PR'
+    required: false
+    default: 'true'
+  text_artifact_name:
+    description: 'Save the plan text as an artifact with the provided name'
+    required: false
+    default: ''
+  plan_artifact_name:
+    description: 'Save the plan as an artifact with the provided name'
+    required: false
+    default: ''
+outputs:
+  text:
+    description: 'Plan text'
+    value: ${{ steps.plan.outputs.stdout }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v1
+      with:
+        terraform_version: ${{ inputs.terraform_version }}
+
+    - name: Hash Lockfile
+      id: lockfile_path
+      if: inputs.cache_providers
+      shell: bash
+      run: echo "${{ inputs.root }}/.terraform.lock.hcl"
+
+    - name: Load cached Terraform Providers
+      uses: actions/cache@v3
+      if: inputs.cache_providers && hashFiles(steps.lockfile_path.output.stdout) != ''
+      with:
+        path: ${{ inputs.root }}/.terraform
+        key: tf-providers-${{ hashFiles(steps.lockfile_path.output.stdout) }}
+
+    - name: Initialize Terraform
+      shell: bash
+      run: terraform -chdir=${{ inputs.root }} init
+
+    - name: Validate Terraform
+      if: inputs.validate_format != 'true'
+      shell: bash
+      run: |
+        terraform fmt -check -recursive -diff infrastructure
+        terraform -chdir=${{ inputs.root }} validate
+
+    - name: Terraform Plan
+      id: plan
+      shell: bash
+      run: terraform -chdir=${{ inputs.root }} plan -out "tf_plan_${{ github.event.after }}" -no-color -input=false
+
+    - name: Save Terraform Plan
+      if: inputs.plan_artifact_name != '' && steps.plan.outcome == 'success'
+      uses: actions/upload-artifact@v3
+      with:
+        name: ${{ inputs.plan_artifact_name }}
+        path: ${{ inputs.root }}/tf_plan_${{ github.event.after }}
+        if-no-files-found: error
+        retention-days: 7
+
+    - name: Dump Plan Text to File
+      if: inputs.text_artifact_name != '' && steps.plan.outcome == 'success'
+      shell: bash
+      env:
+        PLAN: "${{ steps.plan.outputs.stdout }}"
+      run: echo "${PLAN}" >> tf-plan-${{ github.event.after }}.txt
+
+    - name: Save Terraform Plan Text
+      if: inputs.text_artifact_name != '' && steps.plan.outcome == 'success'
+      uses: actions/upload-artifact@v3
+      with:
+        name: ${{ inputs.text_artifact_name }}
+        path: ${{ inputs.text_artifact_name }}
+        if-no-files-found: error
+        retention-days: 7
+
+    - uses: actions/github-script@0.9.0
+      if: steps.plan.outcome == 'success' && inputs.add_plan_to_pr && github.event_name == 'pull_request'
+      env:
+        PLAN: "${{ steps.plan.outputs.stdout }}"
+      with:
+        github-token: ${{ github.token }}
+        script: |
+          const output = `#### Terraform Plan 📖 \`${{ steps.plan.outcome }}\`
+          <details><summary>Show Plan</summary>
+
+          \`\`\`terraform\n
+          ${process.env.PLAN}
+          \`\`\`
+
+          </details>
+
+          *Pusher: @${{ github.actor }}, Action: \`${{ github.event_name }}\`*
+          `;
+          github.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: output
+          })
+
+    - name: Terraform Plan Status
+      if: steps.plan.outcome == 'failure'
+      shell: bash
+      run: exit 1
