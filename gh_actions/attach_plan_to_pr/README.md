@@ -34,7 +34,7 @@ Save the plan as an artifact with the provided name
 
 ## Outputs
 
-## `text`
+### text
 
 The terraform plan in human-readable output
 
@@ -42,7 +42,7 @@ The terraform plan in human-readable output
 
 ```yaml
       - name: Build Terraform Plan
-        uses: ./.github/actions/attach_plan_to_pr
+        uses: RSS-Engineering/terraform/gh_actions/attach_plan_to_pr@v1
         id: plan
         env:
           ENV: prod
@@ -52,7 +52,7 @@ The terraform plan in human-readable output
         with:
           terraform_version: 1.0.1
           root: infrastructure/environments/prod
-          text_artifact_name: tf-plan-${{ github.event.pull_request.head.sha }}.txt
-          plan_artifact_name: tf-plan-${{ github.event.pull_request.head.sha }}
+          text_artifact_name: tf-plan-${{ github.event.after }}.txt
+          plan_artifact_name: tf-plan-${{ github.event.after }}
 ```
 
