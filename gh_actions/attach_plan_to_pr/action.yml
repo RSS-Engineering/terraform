@@ -90,7 +90,7 @@ runs:
       shell: bash
       env:
         PLAN: "${{ steps.plan.outputs.stdout }}"
-      run: echo "${PLAN}" >> tf-plan-${{ github.sha }}.txt
+      run: echo "${PLAN}" >> ${{ inputs.text_artifact_name }}
 
     - name: Save Terraform Plan Text
       if: inputs.text_artifact_name != '' && steps.plan.outcome == 'success'
