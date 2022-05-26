@@ -46,7 +46,7 @@ The terraform plan in human-readable output
 
 ```yaml
       - name: Build Terraform Plan
-        uses: RSS-Engineering/terraform/gh_actions/attach_plan_to_pr@v1.1.1
+        uses: RSS-Engineering/terraform/gh_actions/attach_plan_to_pr@v1.1.2
         id: plan
         env:
           ENV: prod
@@ -56,7 +56,7 @@ The terraform plan in human-readable output
         with:
           terraform_version: 1.0.1
           root: infrastructure/environments/prod
-          text_artifact_name: tf-plan-${{ github.event.after }}.txt
-          plan_artifact_name: tf-plan-${{ github.event.after }}
+          text_artifact_name: tf-plan-${{ github.sha }}.txt
+          plan_artifact_name: tf-plan-${{ github.sha }}
 ```
 
