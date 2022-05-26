@@ -32,6 +32,10 @@ Save the plan text as an artifact with the provided name.
 
 Save the plan as an artifact with the provided name
 
+### ignore_plan_phrase
+
+If the terraform plan contains this phrase, then do not add a plan comment to the Pull Request (default: `'No changes. Your infrastructure matches the configuration.'`)
+
 ## Outputs
 
 ### text

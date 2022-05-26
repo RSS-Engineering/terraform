@@ -30,6 +30,10 @@ inputs:
     description: 'Save the plan as an artifact with the provided name'
     required: false
     default: ''
+  ignore_plan_phrase:
+    description: 'If the plan contains this string, do not output the plan. Use this to reduce unnecessary PR comments.'
+    required: false
+    default: 'No changes. Your infrastructure matches the configuration.'
 outputs:
   text:
     description: 'Plan text'
@@ -98,7 +102,7 @@ runs:
         retention-days: 7
 
     - uses: actions/github-script@0.9.0
-      if: steps.plan.outcome == 'success' && inputs.add_plan_to_pr && github.event_name == 'pull_request'
+      if: steps.plan.outcome == 'success' && inputs.add_plan_to_pr && github.event_name == 'pull_request' && !contains(steps.plan.outputs.stdout, inputs.ignore_plan_phrase)
       env:
         PLAN: "${{ steps.plan.outputs.stdout }}"
       with:
