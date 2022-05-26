@@ -74,14 +74,14 @@ runs:
     - name: Terraform Plan
       id: plan
       shell: bash
-      run: terraform -chdir=${{ inputs.root }} plan -out "tf_plan_${{ github.event.after }}" -no-color -input=false
+      run: terraform -chdir=${{ inputs.root }} plan -out "tf_plan_${{ github.sha }}" -no-color -input=false
 
     - name: Save Terraform Plan
       if: inputs.plan_artifact_name != '' && steps.plan.outcome == 'success'
       uses: actions/upload-artifact@v3
       with:
         name: ${{ inputs.plan_artifact_name }}
-        path: ${{ inputs.root }}/tf_plan_${{ github.event.after }}
+        path: ${{ inputs.root }}/tf_plan_${{ github.sha }}
         if-no-files-found: error
         retention-days: 7
 
@@ -90,7 +90,7 @@ runs:
       shell: bash
       env:
         PLAN: "${{ steps.plan.outputs.stdout }}"
-      run: echo "${PLAN}" >> tf-plan-${{ github.event.after }}.txt
+      run: echo "${PLAN}" >> tf-plan-${{ github.sha }}.txt
 
     - name: Save Terraform Plan Text
       if: inputs.text_artifact_name != '' && steps.plan.outcome == 'success'
