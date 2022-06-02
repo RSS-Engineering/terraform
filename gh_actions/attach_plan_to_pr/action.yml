@@ -65,7 +65,7 @@ runs:
       run: terraform -chdir=${{ inputs.root }} init
 
     - name: Validate Terraform
-      if: inputs.validate_format != 'true'
+      if: inputs.validate_format == 'true'
       shell: bash
       run: |
         terraform fmt -check -recursive -diff infrastructure
