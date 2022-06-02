@@ -46,7 +46,7 @@ The terraform plan in human-readable output
 
 ```yaml
       - name: Build Terraform Plan
-        uses: RSS-Engineering/terraform/gh_actions/attach_plan_to_pr@v1.1.2
+        uses: RSS-Engineering/terraform/gh_actions/attach_plan_to_pr@v1.1.3
         id: plan
         env:
           ENV: prod
