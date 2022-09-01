@@ -74,7 +74,7 @@ runs:
     - name: Terraform Plan
       id: plan
       shell: bash
-      run: terraform -chdir=${{ inputs.root }} plan -out "tf_plan_${{ github.sha }}" -no-color -input=false
+      run: terraform -chdir=${{ inputs.root }} plan -out "tf_plan_${{ github.sha }}" -no-color -input=false | tee {{ inputs.text_artifact_name }}
 
     - name: Save Terraform Plan
       if: inputs.plan_artifact_name != '' && steps.plan.outcome == 'success'
@@ -84,13 +84,6 @@ runs:
         path: ${{ inputs.root }}/tf_plan_${{ github.sha }}
         if-no-files-found: error
         retention-days: 7
-
-    - name: Dump Plan Text to File
-      if: inputs.text_artifact_name != '' && steps.plan.outcome == 'success'
-      shell: bash
-      env:
-        PLAN: "${{ steps.plan.outputs.stdout }}"
-      run: echo "${PLAN}" >> ${{ inputs.text_artifact_name }}
 
     - name: Save Terraform Plan Text
       if: inputs.text_artifact_name != '' && steps.plan.outcome == 'success'
