@@ -103,7 +103,7 @@ runs:
         retention-days: 7
 
     - uses: actions/github-script@0.9.0
-      if: steps.plan.outcome == 'success' && inputs.add_plan_to_pr && github.event_name == 'pull_request' && !contains(steps.plan.outputs.stdout, inputs.ignore_plan_phrase)
+      if: steps.plan.outcome == 'success' && inputs.add_plan_to_pr == 'true' && github.event_name == 'pull_request' && !contains(steps.plan.outputs.stdout, inputs.ignore_plan_phrase)
       env:
         PLAN: "${{ steps.plan.outputs.stdout }}"
       with:
