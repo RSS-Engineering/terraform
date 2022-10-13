@@ -45,10 +45,10 @@ variable "ok_actions" {
 variable "stage" {
 }
 
-variable "swagger_template" {
+variable "openapi_template" {
 }
 
-variable "swagger_template_variables" {
+variable "openapi_template_variables" {
   type    = map(string)
   default = {}
 }

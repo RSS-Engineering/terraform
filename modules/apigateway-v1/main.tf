@@ -54,14 +54,14 @@ resource "aws_iam_role_policy" "lambda_invoke_policy" {
   policy = data.aws_iam_policy_document.lambda_invoke.json
 }
 
-data "template_file" "swagger_file" {
-  template = var.swagger_template
-  vars     = merge(local.common_template_variables, var.swagger_template_variables)
+data "template_file" "openapi_file" {
+  template = var.openapi_template
+  vars     = merge(local.common_template_variables, var.openapi_template_variables)
 }
 
 resource "aws_api_gateway_rest_api" "api" {
   name               = "${var.stage}_${var.name}"
-  body               = data.template_file.swagger_file.rendered
+  body               = data.template_file.openapi_file.rendered
   description        = local.description
   binary_media_types = var.binary_media_types
 }
@@ -71,7 +71,7 @@ resource "aws_api_gateway_deployment" "stage" {
   stage_name  = var.stage
 
   variables = {
-    "version" = md5(data.template_file.swagger_file.rendered)
+    "version" = md5(data.template_file.openapi_file.rendered)
   }
 
   lifecycle {
