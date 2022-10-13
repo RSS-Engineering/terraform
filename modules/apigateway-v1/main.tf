@@ -13,6 +13,9 @@ locals {
     stage       = var.stage
     api_name    = "${var.stage}_${var.name}"
     description = local.description
+
+    authorizer_role = aws_iam_role.api_gateway_invoker.arn
+    lambda_role     = aws_iam_role.api_gateway_invoker.arn
   }
 }
 
