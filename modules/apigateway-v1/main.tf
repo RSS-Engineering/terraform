@@ -75,7 +75,7 @@ resource "aws_api_gateway_deployment" "deployment" {
   triggers = {
     redeployment = sha1(jsonencode([
       aws_api_gateway_rest_api.api.body,
-      aws_api_gateway_stage.stage,
+      var.enable_xray_tracing,
     ]))
   }
 
