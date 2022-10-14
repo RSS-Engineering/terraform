@@ -69,19 +69,31 @@ resource "aws_api_gateway_rest_api" "api" {
   binary_media_types = var.binary_media_types
 }
 
-resource "aws_api_gateway_deployment" "stage" {
+resource "aws_api_gateway_deployment" "deployment" {
   rest_api_id = aws_api_gateway_rest_api.api.id
-  stage_name  = var.stage
+
+  triggers = {
+    redeployment = sha1(jsonencode([
+      aws_api_gateway_rest_api.api.body,
+      aws_api_gateway_stage.stage,
+    ]))
+  }
+
+  lifecycle {
+    create_before_destroy = true
+  }
+}
+
+resource "aws_api_gateway_stage" "stage" {
+  deployment_id = aws_api_gateway_deployment.deployment
+  rest_api_id   = aws_api_gateway_rest_api.api.id
+  stage_name    = var.stage
 
   variables = {
     "version" = md5(data.template_file.openapi_file.rendered)
   }
 
   xray_tracing_enabled = var.enable_xray_tracing
-
-  lifecycle {
-    create_before_destroy = true
-  }
 }
 
 data "aws_acm_certificate" "ssl_cert" {
