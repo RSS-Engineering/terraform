@@ -115,7 +115,7 @@ resource "aws_api_gateway_base_path_mapping" "basepath" {
   count = var.enable_custom_domain ? 1 : 0
 
   api_id      = aws_api_gateway_rest_api.api.id
-  stage_name  = aws_api_gateway_deployment.stage.stage_name
+  stage_name  = aws_api_gateway_stage.stage.stage_name
   domain_name = aws_api_gateway_domain_name.domain[0].domain_name
   base_path   = var.base_path
 }
