@@ -53,6 +53,11 @@ variable "openapi_template_variables" {
   default = {}
 }
 
+variable "xray_tracing_enabled" {
+  type    = bool
+  default = false
+}
+
 variable "zone_name" {
   type    = string
   default = ""

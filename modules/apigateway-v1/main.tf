@@ -77,6 +77,8 @@ resource "aws_api_gateway_deployment" "stage" {
     "version" = md5(data.template_file.openapi_file.rendered)
   }
 
+  xray_tracing_enabled = var.xray_tracing_enabled
+
   lifecycle {
     create_before_destroy = true
   }
