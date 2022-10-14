@@ -33,6 +33,11 @@ variable "enable_monitoring" {
   default = false
 }
 
+variable "enable_xray_tracing" {
+  type    = bool
+  default = false
+}
+
 variable "name" {
   description = "All-lowercase name of the API used in resource names"
 }
@@ -51,11 +56,6 @@ variable "openapi_template" {
 variable "openapi_template_variables" {
   type    = map(string)
   default = {}
-}
-
-variable "xray_tracing_enabled" {
-  type    = bool
-  default = false
 }
 
 variable "zone_name" {
