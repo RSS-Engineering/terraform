@@ -35,3 +35,11 @@ resource "aws_secretsmanager_secret_version" "this" {
   secret_id     = aws_secretsmanager_secret.this[0].id
   secret_string = jsonencode(local.secrets_map)
 }
+
+resource "aws_ssm_parameter" "this" {
+  count = var.ssm_parameter_prefix == "" ? 0 : length(var.secrets)
+
+  name  = "${var.ssm_parameter_prefix}/${var.secrets[count.index].key}"
+  type  = "SecureString"
+  value = local.secrets_map[var.secrets[count.index].key]
+}

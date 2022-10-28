@@ -34,3 +34,9 @@ variable "description" {
 variable "context" {
   type = map(string)
 }
+
+variable "ssm_parameter_prefix" {
+  type        = string
+  description = "Provide a parameter prefix to store the secrets in SSM Parameter Store"
+  default     = ""
+}
