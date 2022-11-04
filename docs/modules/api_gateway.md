@@ -40,13 +40,13 @@ module "api_gateway" {
       proxy_url = "https://api.notifications.rackspace.com/categories"
     }
 
-    # Send GET requests to /health to the "invocation" lambda (bypassing the authorizer)
+    # Send GET requests to /health to the "rest_api_handler" lambda (bypassing the authorizer)
     "health" = {
       method     = "GET"
       lambda_key = "rest_api_handler"
     }
 
-    # Send all unmatched requests to the "invocation" lambda (after passing through the authorizer)
+    # Send all unmatched requests to the "rest_api_handler" lambda (after passing through the authorizer)
     "{proxy+}" = {
       method         = "ANY"
       authorizer_key = "authorizer_lambda"
