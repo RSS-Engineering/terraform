@@ -236,17 +236,17 @@ resource "aws_api_gateway_deployment" "deployment" {
 }
 
 resource "aws_cloudwatch_log_group" "api-gateway-logs" {
-  name = "/aws/apigateway/${aws_api_gateway_rest_api.rest_api.id}/${var.base_path}"
+  name = "/aws/apigateway/${aws_api_gateway_rest_api.rest_api.id}/${var.stage_name}"
   tags = var.tags
 }
 
 resource "aws_api_gateway_stage" "stage" {
   deployment_id = aws_api_gateway_deployment.deployment.id
   rest_api_id   = aws_api_gateway_rest_api.rest_api.id
-  stage_name    = var.base_path
+  stage_name    = var.stage_name
 
   variables = {
-    BASE_PATH = var.base_path
+    STAGE_NAME = var.stage_name
   }
 
   access_log_settings {
