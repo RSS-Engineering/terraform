@@ -2,6 +2,11 @@
 
 **api_gateway** exposes a simple interface for specifying an API Gateway with the AWS [API V1 resources](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/api_gateway_rest_api). The module signature is patterned to be more declarative and similar to the [API Gateway V2 resources](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/apigatewayv2_api)
 
+Amazon exposes API gateways with 2 different APIs but they support different features. [Read More Here](https://www.tinystacks.com/blog-post/api-gateway-rest-vs-http-api-what-are-the-differences/) to see which version is right for your project.
+
+This module abstracts the V1 API since the V2 API is sufficiently well-designed that (for now) does not require an abstraction.
+
+
 ## Example Usage
 
 ---
