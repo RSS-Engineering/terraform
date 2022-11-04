@@ -38,6 +38,10 @@ module "secrets" {
 Terraform good practice is to specify a commit hash when sourcing an external module to prevent module changes from unexpectly breaking your deployment pipeline.
 
 ---
+### [api_gateway](modules/api_gateway.md)
+
+The [api_gateway](modules/api_gateway.md) module exposes a simple interface for specifying an API Gateway with the AWS [API V1 resources](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/api_gateway_rest_api) in a declarative manner.
+
 ### [kms_secrets](modules/kms_secrets.md)
 
 The [kms_secrets](modules/kms_secrets.md) module allows you to store multiple secrets in your repository in encrypted form. This provides secrets that terraform can use without needing them to be stored and managed in a separate secure store such as PasswordSafe, SecretsManager or as an SSM Param.
