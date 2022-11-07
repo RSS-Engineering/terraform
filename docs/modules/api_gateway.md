@@ -22,8 +22,12 @@ module "api_gateway" {
 
   # Specify lambdas by (arbitrary) key and function-name for later reference via a route.
   lambdas = {
-    "authorizer_lambda" : module.lambda_authorizer.function_name
-    "rest_api_handler" : module.lambda_rest_api.function_name
+    "authorizer_lambda" = {
+      "function_name" = module.lambda_authorizer.function_name
+    }
+    "rest_api_handler" = {
+      "function_name" = module.lambda_rest_api.function_name
+    }
   }
   
   # Send requests to / to the "rest_api_handler" lambda after passing through the authorizer
@@ -67,11 +71,17 @@ The following arguments are supported:
 * `name` - The API Gateway name. Also added as a partial name to a log role and execution permission.
 * `description` - The API Gateway description.
 * `stage_name` - API stage name, applied as suffix to log group name and passed as the `STAGE_NAME` variable. (Use this for frameworks that need to know the _base_path_.)
-* `lambdas` - A mapping of string keys to lambda function names. The keys are arbitrary for reference in `root_route` and `route` entries.
+* `endpoint_type` - (optional, default "EDGE") - Endpoint configuration type. ["REGIONAL"](https://docs.aws.amazon.com/apigateway/latest/developerguide/create-regional-api.html) or ["EDGE"](https://docs.aws.amazon.com/apigateway/latest/developerguide/create-api-resources-methods.html)
 * `root_route` - A single `route` mapping specifying the behavior of the root ("/") endpoint.
 * `routes` - A mapping of path prefixes to `route` mappings to define the behavior at that path prefix.
 * `tags` - (optional) A mapping of tags to be applied to all resources.
+* `lambdas` - A mapping of string keys to an attribute mapping. The keys are arbitrary for reference in `root_route` and `route` entries.
 
+The `lambda` attribute map contains:
+
+* `function_name` - the function name of the lambda to be called
+* `authorizer_result_ttl_in_seconds` - (optional, default to "900") ttl in seconds for an authorizer result.
+* `identity_source` - (optional, default "method.request.header.X-Auth-Token") identity source for an authorizer lambda.
 
 A `route` mapping can contain:
 

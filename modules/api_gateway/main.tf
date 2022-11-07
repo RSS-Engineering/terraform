@@ -32,7 +32,7 @@ data "aws_region" "current" {}
 data "aws_lambda_function" "lambda" {
   for_each = var.lambdas
 
-  function_name = each.value
+  function_name = each.value["function_name"]
 }
 
 data "aws_iam_policy_document" "assume_role" {
@@ -71,18 +71,6 @@ resource "aws_iam_role" "invocation_role" {
 EOF
 }
 
-resource "aws_api_gateway_authorizer" "authorizer" {
-  for_each = local.authorizer_keys
-
-  name        = "api_authorizer_${each.key}"
-  rest_api_id = aws_api_gateway_rest_api.rest_api.id
-  # authorizer_uri looks funny because of https://github.com/hashicorp/terraform-provider-aws/issues/26619
-  authorizer_uri                   = replace(data.aws_lambda_function.lambda[each.key].invoke_arn, "/\\:\\d{1,3}\\/invocations/", "/invocations")
-  authorizer_credentials           = aws_iam_role.invocation_role.arn
-  identity_source                  = "method.request.header.X-Auth-Token"
-  authorizer_result_ttl_in_seconds = 900
-}
-
 resource "aws_iam_role_policy" "invocation_policy" {
   name = "apigateway_authorization_invocation_policy"
   role = aws_iam_role.invocation_role.id
@@ -101,24 +89,16 @@ resource "aws_iam_role_policy" "invocation_policy" {
   })
 }
 
-resource "aws_iam_role" "lambda_iam_role" {
-  name = "lambda_iam_role"
+resource "aws_api_gateway_authorizer" "authorizer" {
+  for_each = local.authorizer_keys
 
-  assume_role_policy = <<EOF
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Action": "sts:AssumeRole",
-      "Principal": {
-        "Service": "lambda.amazonaws.com"
-      },
-      "Effect": "Allow",
-      "Sid": ""
-    }
-  ]
-}
-EOF
+  name        = "api_authorizer_${each.key}"
+  rest_api_id = aws_api_gateway_rest_api.rest_api.id
+  # authorizer_uri looks funny because of https://github.com/hashicorp/terraform-provider-aws/issues/26619
+  authorizer_uri                   = replace(data.aws_lambda_function.lambda[each.key].invoke_arn, "/\\:\\d{1,3}\\/invocations/", "/invocations")
+  authorizer_credentials           = aws_iam_role.invocation_role.arn
+  identity_source                  = lookup(var.lambdas[each.key], "identity_source", "method.request.header.X-Auth-Token")
+  authorizer_result_ttl_in_seconds = parseint(lookup(var.lambdas[each.key], "authorizer_result_ttl_in_seconds", "900"), 10)
 }
 # END
 
@@ -141,7 +121,7 @@ resource "aws_api_gateway_rest_api" "rest_api" {
   description = var.description
 
   endpoint_configuration {
-    types = ["EDGE"]
+    types = [var.endpoint_type]
   }
 
   tags = var.tags
