@@ -217,6 +217,7 @@ resource "aws_api_gateway_deployment" "deployment" {
 
 resource "aws_cloudwatch_log_group" "api-gateway-logs" {
   name = "/aws/apigateway/${aws_api_gateway_rest_api.rest_api.id}/${var.stage_name}"
+  retention_in_days = var.log_retention_in_days
   tags = var.tags
 }
 

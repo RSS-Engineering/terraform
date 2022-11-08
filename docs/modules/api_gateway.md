@@ -15,10 +15,11 @@ This module abstracts the V1 API since the V2 API is sufficiently well-designed 
 module "api_gateway" {
   source = "github.com/RSS-Engineering/terraform.git?ref={commit}/modules/api_gateway"
 
-  name        = "API Gateway"
-  description = "REST Endpoints"
-  stage_name  = "v1"
-  tags        = {}
+  name                  = "API Gateway"
+  description           = "REST Endpoints"
+  stage_name            = "v1"
+  tags                  = {}
+  log_retention_in_days = 0
 
   # Specify lambdas by (arbitrary) key and function-name for later reference via a route.
   lambdas = {
@@ -75,6 +76,7 @@ The following arguments are supported:
 * `root_route` - A single `route` mapping specifying the behavior of the root ("/") endpoint.
 * `routes` - A mapping of path prefixes to `route` mappings to define the behavior at that path prefix.
 * `tags` - (optional) A mapping of tags to be applied to all resources.
+* `log_retention_in_days` - (optional, default 0) - number of days to retain logs. 0 (the default) means to never expire logs. Other valid values are: 1, 3, 5, 7, 14, 30, 60, 90, 120, 150, 180, 365, 400, 545, 731, 1827, 3653.
 * `lambdas` - A mapping of string keys to an attribute mapping. The keys are arbitrary for reference in `root_route` and `route` entries.
 
 The `lambda` attribute map contains:
