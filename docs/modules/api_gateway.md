@@ -102,3 +102,4 @@ In addition to all arguments above, the following attributes are exported:
 
 * `api_id` - The id of the API Gateway
 * `hostname` - The string hostname of the API Gateway
+* `stage_url` - The full url of the exposed stage.
