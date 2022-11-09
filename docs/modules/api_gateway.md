@@ -39,20 +39,20 @@ module "api_gateway" {
 
   routes = {
     # Send GET requests to /categories to the proxy_url (bypassing the authorizer)
-    "categories" = {
+    "/categories" = {
       method = "GET"
       type = "HTTP_PROXY"
       proxy_url = "https://api.notifications.rackspace.com/categories"
     }
 
     # Send GET requests to /health to the "rest_api_handler" lambda (bypassing the authorizer)
-    "health" = {
+    "/health" = {
       method     = "GET"
       lambda_key = "rest_api_handler"
     }
 
     # Send all unmatched requests to the "rest_api_handler" lambda (after passing through the authorizer)
-    "{proxy+}" = {
+    "/{proxy+}" = {
       method         = "ANY"
       authorizer_key = "authorizer_lambda"
       lambda_key     = "rest_api_handler"
@@ -74,7 +74,7 @@ The following arguments are supported:
 * `stage_name` - API stage name, applied as suffix to log group name and passed as the `STAGE_NAME` variable. (Use this for frameworks that need to know the _base_path_.)
 * `endpoint_type` - (optional, default "EDGE") - Endpoint configuration type. ["REGIONAL"](https://docs.aws.amazon.com/apigateway/latest/developerguide/create-regional-api.html) or ["EDGE"](https://docs.aws.amazon.com/apigateway/latest/developerguide/create-api-resources-methods.html)
 * `root_route` - A single `route` mapping specifying the behavior of the root ("/") endpoint.
-* `routes` - A mapping of path prefixes to `route` mappings to define the behavior at that path prefix.
+* `routes` - A mapping of path prefixes to `route` mappings to define the behavior at that path prefix (The leading '/' is cosmetic. All paths are applied at the root of the stage).
 * `tags` - (optional) A mapping of tags to be applied to all resources.
 * `log_retention_in_days` - (optional, default 0) - number of days to retain logs. 0 (the default) means to never expire logs. Other valid values are: 1, 3, 5, 7, 14, 30, 60, 90, 120, 150, 180, 365, 400, 545, 731, 1827, 3653.
 * `lambdas` - A mapping of string keys to an attribute mapping. The keys are arbitrary for reference in `root_route` and `route` entries.

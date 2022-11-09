@@ -16,7 +16,7 @@ locals {
     k => ""
   }
   routes = {
-    for key, value in var.routes : key => {
+    for key, value in var.routes : trimprefix(key, "/") => {
       method         = lookup(value, "method", "ANY")
       authorizer_key = lookup(value, "authorizer_key", "")
       lambda_key     = lookup(value, "lambda_key", "")
