@@ -1,6 +1,8 @@
 variable "app_key" {
   type        = string
   description = "Datadog integration app key"
+
+  sensitive = true
 }
 
 variable "api_key" {

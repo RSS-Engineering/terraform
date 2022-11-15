@@ -12,7 +12,7 @@
 module "datadog_aws_integration" {
   source = "github.com/RSS-Engineering/terraform.git?ref={commit}/modules/datadog_aws_integration"
 
-  app_key = "app_key_from_datadog_console"
+  app_key = module.secrets.plaintext["datadog_app_key"] # Recommended to use the kms_secrets module here
   api_key = module.secrets.plaintext["datadog_api_key"] # Recommended to use the kms_secrets module here
   
   host_tags = {
@@ -35,7 +35,7 @@ module "datadog_aws_integration" {
 
 The following arguments are supported:
 
-* `app_key` - Datadog integration App key
+* `app_key` - (sensitive) Datadog integration App key
 * `api_key` - (sensitive) Datadog integration API key
-* `host_tags` - A map of strings to be applied as tags to each metric ingested through this integration. The key-value pair will be converted to a single tag formatted like "{k}:{v}"
-* `namespace_rules` - Specifically enables or disables metric collection for specific AWS namespaces for this _AWS account only_. A list of namespaces can be found at the [available namespace rules API endpoint](https://docs.datadoghq.com/api/v1/aws-integration/#list-namespace-rules).
+* `host_tags` - (optional) A map of strings to be applied as tags to each metric ingested through this integration. The key-value pair will be converted to a single tag formatted like "{k}:{v}"
+* `namespace_rules` - (optional) Specifically enables or disables metric collection for specific AWS namespaces for this _AWS account only_. A list of namespaces can be found at the [available namespace rules API endpoint](https://docs.datadoghq.com/api/v1/aws-integration/#list-namespace-rules). Omitting a namespace will not change it from the default integration settings.
