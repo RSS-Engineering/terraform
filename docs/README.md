@@ -38,6 +38,11 @@ module "secrets" {
 Terraform good practice is to specify a commit hash when sourcing an external module to prevent module changes from unexpectly breaking your deployment pipeline.
 
 ---
+### [datadog_aws_integration](modules/datadog_aws_integration.md)
+
+The [datadog_aws_integration](modules/datadog_aws_integration.md) module creates the required IAM roles and polices for Datadog to integrate with your AWS account. It will also create the aws integration in datadog.
+
 ### [kms_secrets](modules/kms_secrets.md)
 
 The [kms_secrets](modules/kms_secrets.md) module allows you to store multiple secrets in your repository in encrypted form. This provides secrets that terraform can use without needing them to be stored and managed in a separate secure store such as PasswordSafe, SecretsManager or as an SSM Param.
+
