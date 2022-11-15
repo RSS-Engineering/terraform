@@ -136,4 +136,5 @@ resource "datadog_integration_aws" "integration" {
   host_tags = [
     for k, v in var.host_tags : "${k}:${v}"
   ]
+  account_specific_namespace_rules = var.namespace_rules
 }

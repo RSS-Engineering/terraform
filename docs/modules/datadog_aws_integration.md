@@ -21,6 +21,11 @@ module "datadog_aws_integration" {
     "service" : "Application",
     "env" : "production",
   }
+  namespace_rules = {
+    "api_gateway" : true,
+    "cloudfront" : true,
+    "cloudwatch_events" : true
+  }
 }
 ```
 
@@ -33,3 +38,4 @@ The following arguments are supported:
 * `app_key` - Datadog integration App key
 * `api_key` - (sensitive) Datadog integration API key
 * `host_tags` - A map of strings to be applied as tags to each metric ingested through this integration. The key-value pair will be converted to a single tag formatted like "{k}:{v}"
+* `namespace_rules` - Specifically enables or disables metric collection for specific AWS namespaces for this _AWS account only_. A list of namespaces can be found at the [available namespace rules API endpoint](https://docs.datadoghq.com/api/v1/aws-integration/#list-namespace-rules).
