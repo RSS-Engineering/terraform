@@ -43,6 +43,7 @@ The following arguments are supported:
 - `context` - (Optional) A map used to encrypt/decrypt the ciphertext. This must be the same as what is provided to encrypt the secrets.
 - `secretsmanager_key` - (Optional) A string value key used to save a hash of the `secrets` in SecretsManager in order to access the secrets after deployment.
 - `ssm_parameter_prefix` - (Optional) A string value without trailing hashes representing the prefix under which the secrets should be saved into SSM Parameter Store (the resulting parameter name will be: `<ssm_parameter_prefix>/<key>`)
+- `use_custom_kms_key_for_ssm` - (Optional) A boolean value indicating whether to use a custom KMS key for encrypting the secrets in SSM Parameter Store. Default to `false` which means that the AWS managed SSM key for SSM Parameter Store will be used.
 - `secrets` - A list of objects each with:
 
   - `key` - A plaintext string value used to reference this secret.

@@ -40,3 +40,9 @@ variable "ssm_parameter_prefix" {
   description = "Provide a parameter prefix to store the secrets in SSM Parameter Store"
   default     = ""
 }
+
+variable "use_custom_kms_key_for_ssm" {
+  type        = bool
+  description = "Use the default AWS managed KMS key to encrypt the secrets in SSM Parameter Store"
+  default     = false
+}

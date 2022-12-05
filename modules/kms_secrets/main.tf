@@ -2,6 +2,10 @@ locals {
   secrets_map = { for i, s in var.secrets : s.key => data.aws_kms_secrets.this.plaintext[i] }
 }
 
+data "aws_kms_alias" "aws_ssm" {
+  name = "alias/aws/ssm"
+}
+
 # This is only here to verify that the kms keys exist.
 data "aws_kms_key" "ciphertext_keys" {
   count = length(var.secrets)
@@ -41,6 +45,6 @@ resource "aws_ssm_parameter" "this" {
 
   name   = "${var.ssm_parameter_prefix}/${var.secrets[count.index].key}"
   type   = "SecureString"
-  key_id = var.secrets[count.index].kms_key_id
+  key_id = var.use_custom_kms_key_for_ssm ? var.secrets[count.index].kms_key_id : data.aws_kms_alias.aws_ssm.target_key_id
   value  = local.secrets_map[var.secrets[count.index].key]
 }
