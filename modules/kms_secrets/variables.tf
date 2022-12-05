@@ -43,6 +43,6 @@ variable "ssm_parameter_prefix" {
 
 variable "use_custom_kms_key_for_ssm" {
   type        = bool
-  description = "Use the default AWS managed KMS key to encrypt the secrets in SSM Parameter Store"
+  description = "Use a custom KMS key to encrypt the secrets in SSM Parameter Store"
   default     = false
 }
