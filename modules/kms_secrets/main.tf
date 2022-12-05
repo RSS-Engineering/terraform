@@ -39,7 +39,8 @@ resource "aws_secretsmanager_secret_version" "this" {
 resource "aws_ssm_parameter" "this" {
   count = var.ssm_parameter_prefix == "" ? 0 : length(var.secrets)
 
-  name  = "${var.ssm_parameter_prefix}/${var.secrets[count.index].key}"
-  type  = "SecureString"
-  value = local.secrets_map[var.secrets[count.index].key]
+  name   = "${var.ssm_parameter_prefix}/${var.secrets[count.index].key}"
+  type   = "SecureString"
+  key_id = var.secrets[count.index].kms_key_id
+  value  = local.secrets_map[var.secrets[count.index].key]
 }
