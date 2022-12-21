@@ -74,15 +74,15 @@ The following arguments are supported:
     3. The output of the previous step is the value to use for `ciphertext`.
 
 ---
-    **Alternatively you can capture the ciphertext in a single command:**
+**Alternatively you can capture the ciphertext in a single command:**
     
-    ```bash
-    aws kms encrypt --key-id arn:aws:kms:us-east-1:291865602826:alias/turducken \
-      --plaintext fileb://<(echo -n '{SECRET}') \
-      --encryption-context environment=dev \
-      --output text \
-      --query CiphertextBlob
-    ```  
+```bash
+aws kms encrypt --key-id {kms_key_id} \
+  --plaintext fileb://<(echo -n 'master-password') \
+  --encryption-context environment=dev \
+  --output text \
+  --query CiphertextBlob
+```  
 
 ## Attributes Reference
 
