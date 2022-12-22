@@ -3,11 +3,6 @@ data "aws_region" "current" {}
 
 # Adapted from https://docs.datadoghq.com/integrations/guide/aws-terraform-setup/
 
-provider "datadog" {
-  api_key = var.api_key
-  app_key = var.app_key
-}
-
 locals {
   integration_role_name = "DatadogAWSIntegrationRole"
 }
