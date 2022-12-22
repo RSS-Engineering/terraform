@@ -112,7 +112,6 @@ data "aws_iam_policy_document" "assume_role" {
   }
 }
 
-
 resource "aws_iam_role" "integration_role" {
   name        = local.integration_role_name
   description = "Role for Datadog AWS Integration"
