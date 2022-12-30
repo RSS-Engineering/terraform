@@ -140,7 +140,7 @@ resource "aws_api_gateway_method" "rest_api_route_method" {
   for_each = local.routes
 
   rest_api_id   = aws_api_gateway_rest_api.rest_api.id
-  resource_id   = aws_api_gateway_resource.rest_api_route_resource[each.key].id
+  resource_id   = each.key != "" ? aws_api_gateway_resource.rest_api_route_resource[each.key].id : aws_api_gateway_rest_api.rest_api.root_resource_id
   http_method   = each.value["method"]
   authorization = each.value["authorizer_key"] == "" ? "NONE" : "CUSTOM"
   authorizer_id = (
@@ -154,7 +154,7 @@ resource "aws_api_gateway_integration" "rest_api_route_integration" {
   for_each = local.routes
 
   rest_api_id             = aws_api_gateway_rest_api.rest_api.id
-  resource_id             = aws_api_gateway_resource.rest_api_route_resource[each.key].id
+  resource_id             = each.key != "" ? aws_api_gateway_resource.rest_api_route_resource[each.key].id : aws_api_gateway_rest_api.rest_api.root_resource_id
   http_method             = aws_api_gateway_method.rest_api_route_method[each.key].http_method
   integration_http_method = each.value["lambda_key"] != "" ? "POST" : each.value["method"]
   type                    = each.value["type"]
@@ -168,35 +168,9 @@ resource "aws_api_gateway_integration" "rest_api_route_integration" {
   request_templates    = {}
 }
 
-# root route
-resource "aws_api_gateway_method" "rest_root_method" {
-  rest_api_id   = aws_api_gateway_rest_api.rest_api.id
-  resource_id   = aws_api_gateway_rest_api.rest_api.root_resource_id
-  http_method   = "ANY"
-  authorization = lookup(var.root_route, "authorizer_key", 1) != 1 ? "CUSTOM" : "NONE"
-  authorizer_id = lookup(var.root_route, "authorizer_key", 1) != 1 ? aws_api_gateway_authorizer.authorizer[var.root_route["authorizer_key"]].id : null
-}
-
-resource "aws_api_gateway_integration" "rest_root_integration" {
-  rest_api_id             = aws_api_gateway_rest_api.rest_api.id
-  resource_id             = aws_api_gateway_rest_api.rest_api.root_resource_id
-  http_method             = aws_api_gateway_method.rest_root_method.http_method
-  integration_http_method = lookup(var.root_route, "method", "POST")
-  type                    = lookup(var.root_route, "type", "AWS_PROXY")
-  uri = (
-    lookup(var.root_route, "lambda_key", 1) != 1
-    ? replace(data.aws_lambda_function.lambda[var.root_route["lambda_key"]].invoke_arn, "/\\:\\d{1,3}\\/invocations/", "/invocations")
-    : var.root_route["proxy_url"]
-  )
-  cache_key_parameters = []
-  request_parameters   = {}
-  request_templates    = {}
-}
-# END root route
-
 resource "aws_api_gateway_deployment" "deployment" {
   depends_on = [
-    aws_api_gateway_integration.rest_root_integration,
+    aws_api_gateway_integration.rest_api_route_integration[""], # The root route
   ]
   rest_api_id = aws_api_gateway_rest_api.rest_api.id
 

@@ -41,10 +41,6 @@ variable "lambdas" {
   type = map(map(string))
 }
 
-variable "root_route" {
-  type = map(string)
-}
-
 variable "routes" {
   type = map(map(string))
 }
