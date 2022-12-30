@@ -24,7 +24,7 @@ locals {
       type           = lookup(value, "type", "AWS_PROXY")
     }
   }
-  subroutes = {for key, value in var.routes : key => value if key != ""}
+  subroutes = {for key, value in local.routes : key => value if key != ""}
 }
 
 data "aws_region" "current" {}
