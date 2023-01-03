@@ -73,6 +73,8 @@ EOF
 }
 
 resource "aws_iam_role_policy" "invocation_policy" {
+  count = length(local.authorizer_list) > 0 ? 1 : 0
+
   name = "${var.name}-apigateway-authorization-invocation-policy"
   role = aws_iam_role.invocation_role.id
 
