@@ -52,7 +52,7 @@ data "aws_iam_policy_document" "assume_role" {
 }
 
 resource "aws_iam_role" "invocation_role" {
-  name = "api_gateway_auth_invocation_role"
+  name = "${var.name}-apigateway-auth-invocation-role"
   path = "/"
 
   assume_role_policy = <<EOF
@@ -73,7 +73,7 @@ EOF
 }
 
 resource "aws_iam_role_policy" "invocation_policy" {
-  name = "apigateway_authorization_invocation_policy"
+  name = "${var.name}-apigateway-authorization-invocation-policy"
   role = aws_iam_role.invocation_role.id
 
   policy = jsonencode({
@@ -93,7 +93,7 @@ resource "aws_iam_role_policy" "invocation_policy" {
 resource "aws_api_gateway_authorizer" "authorizer" {
   for_each = local.authorizer_keys
 
-  name        = "api_authorizer_${each.key}"
+  name        = "api-authorizer-${each.key}"
   rest_api_id = aws_api_gateway_rest_api.rest_api.id
   # authorizer_uri looks funny because of https://github.com/hashicorp/terraform-provider-aws/issues/26619
   authorizer_uri                   = replace(data.aws_lambda_function.lambda[each.key].invoke_arn, "/\\:\\d{1,3}\\/invocations/", "/invocations")
