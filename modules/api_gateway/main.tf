@@ -24,7 +24,7 @@ locals {
       type           = lookup(value, "type", "AWS_PROXY")
     }
   }
-  subroutes = {for key, value in local.routes : key => value if key != ""}
+  subroutes = { for key, value in local.routes : key => value if key != "" }
   redeployment_hash = sha1(jsonencode(concat(
     [
       for key, value in aws_api_gateway_resource.rest_api_route_resource : value.id
@@ -117,10 +117,10 @@ resource "aws_api_gateway_authorizer" "authorizer" {
 # END
 
 # API_GATEWAY
-resource "aws_lambda_permission" "web_rest_invoke_permission" {
-  for_each = local.integration_keys
+resource "aws_lambda_permission" "lambda_invoke_permission" {
+  for_each = var.lambdas
 
-  statement_id  = "allow-${var.name}-restapi-invoke-${each.key}"
+  statement_id  = "allow-${var.name}-apigateway-invoke-${each.key}"
   action        = "lambda:InvokeFunction"
   function_name = data.aws_lambda_function.lambda[each.key].function_name
   principal     = "apigateway.amazonaws.com"
