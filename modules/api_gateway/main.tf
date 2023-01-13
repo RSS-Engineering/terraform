@@ -22,6 +22,7 @@ locals {
       lambda_key     = lookup(value, "lambda_key", "")
       proxy_url      = lookup(value, "proxy_url", "")
       type           = lookup(value, "type", "AWS_PROXY")
+      path_params    = regexall("(?:{)([A-Za-z][A-Za-z0-9]+)(?:[+]?})", key)
     }
   }
   subroutes = { for key, value in local.routes : key => value if key != "" }
@@ -162,6 +163,9 @@ resource "aws_api_gateway_method" "rest_api_route_method" {
     ? null
     : aws_api_gateway_authorizer.authorizer[each.value["authorizer_key"]].id
   )
+  request_parameters = {
+    for name in each.value["path_params"] : "method.request.path.${name[0]}" => true
+  }
 }
 
 resource "aws_api_gateway_integration" "rest_api_route_integration" {
@@ -178,8 +182,10 @@ resource "aws_api_gateway_integration" "rest_api_route_integration" {
     : each.value["proxy_url"]
   )
   cache_key_parameters = []
-  request_parameters   = {}
-  request_templates    = {}
+  request_parameters = {
+    for name in each.value["path_params"] : "integration.request.path.${name[0]}" => "method.request.path.${name[0]}"
+  }
+  request_templates = {}
 }
 
 resource "aws_api_gateway_deployment" "deployment" {
