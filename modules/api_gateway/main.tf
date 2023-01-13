@@ -25,6 +25,17 @@ locals {
     }
   }
   subroutes = {for key, value in local.routes : key => value if key != ""}
+  redeployment_hash = sha1(jsonencode(concat(
+    [
+      for key, value in aws_api_gateway_resource.rest_api_route_resource : value.id
+      ], [
+      for key, value in aws_api_gateway_method.rest_api_route_method : value.id
+      ], [
+      for key, value in aws_api_gateway_integration.rest_api_route_integration : value.id
+      ], [
+      for key, value in aws_api_gateway_authorizer.authorizer : value.id
+    ]
+  )))
 }
 
 data "aws_region" "current" {}
@@ -172,24 +183,12 @@ resource "aws_api_gateway_integration" "rest_api_route_integration" {
 }
 
 resource "aws_api_gateway_deployment" "deployment" {
-  depends_on = [
-    aws_api_gateway_integration.rest_api_route_integration[""], # The root route
-  ]
   rest_api_id = aws_api_gateway_rest_api.rest_api.id
 
   triggers = {
-    redeployment = sha1(jsonencode(concat(
-      [
-        for key, value in aws_api_gateway_resource.rest_api_route_resource : value.id
-        ], [
-        for key, value in aws_api_gateway_method.rest_api_route_method : value.id
-        ], [
-        for key, value in aws_api_gateway_integration.rest_api_route_integration : value.id
-        ], [
-        for key, value in aws_api_gateway_authorizer.authorizer : value.id
-      ]
-    )))
+    redeployment = local.redeployment_hash
   }
+  stage_description = local.redeployment_hash
 
   lifecycle {
     create_before_destroy = true
