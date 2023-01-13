@@ -77,6 +77,8 @@ The following arguments are supported:
 * `tags` - (optional) A mapping of tags to be applied to all resources.
 * `log_retention_in_days` - (optional, default 0) - number of days to retain logs. 0 (the default) means to never expire logs. Other valid values are: 1, 3, 5, 7, 14, 30, 60, 90, 120, 150, 180, 365, 400, 545, 731, 1827, 3653.
 * `lambdas` - A mapping of string keys to an attribute mapping. The keys are arbitrary for reference in `root_route` and `route` entries.
+* `set_cloudwatch_role` - A boolean indicating if the API Gateway Cloudwatch role should be set
+* `apigateway_cloudwatch_role_arn` - (optional) If `set_cloudwatch_role` is true, then specifying this will set the specific role. If not provided, a role will be created.
 
 The `lambda` attribute map contains:
 
@@ -101,4 +103,5 @@ In addition to all arguments above, the following attributes are exported:
 
 * `api_id` - The id of the API Gateway
 * `hostname` - The string hostname of the API Gateway
-* `stage_url` - The full url of the exposed stage.
+* `stage_url` - The full url of the exposed stage
+* `log_role_arn` - The cloudwatch log role created if `apigateway_cloudwatch_role_arn` is not supplied

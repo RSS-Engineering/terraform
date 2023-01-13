@@ -44,3 +44,15 @@ variable "lambdas" {
 variable "routes" {
   type = map(map(string))
 }
+
+variable "set_cloudwatch_role" {
+  type = bool
+
+  default = true
+}
+
+variable "apigateway_cloudwatch_role_arn" {
+  type = string
+
+  default = ""
+}

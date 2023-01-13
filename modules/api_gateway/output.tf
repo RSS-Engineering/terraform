@@ -9,3 +9,7 @@ output "hostname" {
 output "stage_url" {
   value = aws_api_gateway_stage.stage.invoke_url
 }
+
+output "log_role_arn" {
+  value = var.apigateway_cloudwatch_role_arn != "" ? var.apigateway_cloudwatch_role_arn : aws_iam_role.log_role[0].arn
+}

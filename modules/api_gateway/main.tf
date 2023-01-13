@@ -248,6 +248,8 @@ resource "aws_api_gateway_method_settings" "settings" {
 }
 
 resource "aws_iam_role" "log_role" {
+  count = var.set_cloudwatch_role && var.apigateway_cloudwatch_role_arn == "" ? 1 : 0
+
   name               = "${var.name}-apigateway-log-role"
   assume_role_policy = data.aws_iam_policy_document.assume_role.json
   tags               = var.tags
@@ -255,10 +257,18 @@ resource "aws_iam_role" "log_role" {
 
 # Attach AmazonAPIGatewayPushToCloudWatchLogs policy to API Gateway role to allow it to write logs
 resource "aws_iam_role_policy_attachment" "attach_cloudwatch_logging" {
-  role       = aws_iam_role.log_role.name
+  count = var.set_cloudwatch_role && var.apigateway_cloudwatch_role_arn == "" ? 1 : 0
+
+  role       = aws_iam_role.log_role[0].name
   policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonAPIGatewayPushToCloudWatchLogs"
 }
 
 resource "aws_api_gateway_account" "api_gateway_account" {
-  cloudwatch_role_arn = aws_iam_role.log_role.arn
+  count = var.set_cloudwatch_role ? 1 : 0
+
+  cloudwatch_role_arn = (
+    var.apigateway_cloudwatch_role_arn != ""
+    ? var.apigateway_cloudwatch_role_arn
+    : aws_iam_role.log_role[0].arn
+  )
 }
