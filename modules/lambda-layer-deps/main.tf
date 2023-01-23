@@ -1,4 +1,4 @@
-resource aws_lambda_layer_version this {
+resource "aws_lambda_layer_version" "this" {
   layer_name               = var.layer_name
   description              = var.description
   license_info             = var.license_info
@@ -8,9 +8,9 @@ resource aws_lambda_layer_version this {
   source_code_hash         = filebase64sha256(data.external.build.result["output_path"])
 }
 
-data external build {
+data "external" "build" {
   program = ["python3", "${path.module}/package.py"]
-  query   = {
+  query = {
     dependency_manager   = var.dependency_manager
     runtime              = var.runtime
     dependency_lock_file = var.dependency_lock_file_path
