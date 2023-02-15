@@ -38,6 +38,10 @@ module "secrets" {
 Terraform good practice is to specify a commit hash when sourcing an external module to prevent module changes from unexpectly breaking your deployment pipeline.
 
 ---
+### [api_gateway](modules/api_gateway.md)
+
+The [api_gateway](modules/api_gateway.md) module exposes a simple interface for specifying an API Gateway with the AWS [API V1 resources](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/api_gateway_rest_api) in a declarative manner.
+
 ### [datadog_aws_integration](modules/datadog_aws_integration.md)
 
 The [datadog_aws_integration](modules/datadog_aws_integration.md) module creates the required IAM roles and polices for Datadog to integrate with your AWS account. It will also create the aws integration in datadog.
