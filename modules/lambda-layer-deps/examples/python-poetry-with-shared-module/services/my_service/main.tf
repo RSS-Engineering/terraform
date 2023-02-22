@@ -1,13 +1,13 @@
 provider "aws" {
-  profile = "zamboni-development"
-  region  = "us-west-1"
+  region = "us-west-1"
 }
 
 module "layer" {
-  source                    = "../../../../../../"
+  source                    = "../../../../"
   layer_name                = "python-poetry-with-shared-package"
-  dependency_lock_file_path = "${path.module}/poetry.lock"
+  dependency_lock_file_path = "${path.module}/../../poetry.lock"
   dependency_manager        = "poetry"
+  use_ecr_image             = true
 }
 
 module "lambda_function" {
