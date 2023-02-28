@@ -42,6 +42,11 @@ Terraform good practice is to specify a commit hash when sourcing an external mo
 
 The [api_gateway](modules/api_gateway.md) module exposes a simple interface for specifying an API Gateway with the AWS [API V1 resources](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/api_gateway_rest_api) in a declarative manner.
 
+### [datadog_aws_integration](modules/datadog_aws_integration.md)
+
+The [datadog_aws_integration](modules/datadog_aws_integration.md) module creates the required IAM roles and polices for Datadog to integrate with your AWS account. It will also create the aws integration in datadog.
+
 ### [kms_secrets](modules/kms_secrets.md)
 
 The [kms_secrets](modules/kms_secrets.md) module allows you to store multiple secrets in your repository in encrypted form. This provides secrets that terraform can use without needing them to be stored and managed in a separate secure store such as PasswordSafe, SecretsManager or as an SSM Param.
+
