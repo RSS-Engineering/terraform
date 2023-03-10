@@ -93,6 +93,7 @@ A `route` mapping can contain:
 * `proxy_url` - if type is "HTTP_PROXY", proxy requests to this endpoint (otherwise this argument is ignored)
 * `lambda_key` - if type is "AWS_PROXY", send requests to the lambda assigned to this arbitrary key in the `lambdas` argument (otherwise argument is ignored).
 * `authorizer_key` - (optional) if type is "AWS_PROXY", add this authorizer to the route (otherwise argument is ignored).
+* `headers` - (optional) an optional string-mapping of header names to static values. (example: "Host=example.com;Accept=application/json")
 
 
 ## Attributes Reference

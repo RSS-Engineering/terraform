@@ -23,6 +23,7 @@ locals {
       proxy_url      = lookup(value, "proxy_url", "")
       type           = lookup(value, "type", "AWS_PROXY")
       path_params    = regexall("(?:{)([A-Za-z][A-Za-z0-9]+)(?:[+]?})", key)
+      headers        = lookup(value, "headers", "")
     }
   }
   subroutes = { for key, value in local.routes : key => value if key != "" }
@@ -182,9 +183,11 @@ resource "aws_api_gateway_integration" "rest_api_route_integration" {
     : each.value["proxy_url"]
   )
   cache_key_parameters = []
-  request_parameters = {
+  request_parameters = merge({
     for name in each.value["path_params"] : "integration.request.path.${name[0]}" => "method.request.path.${name[0]}"
-  }
+  }, {
+    for header_pair in split(";", each.value["headers"]) : "integration.request.header.${split("=", header_pair)[0]}" => "'${split("=", header_pair)[1]}'" if length(regexall(".*=.*", header_pair)) > 0
+  })
   request_templates = {}
 }
 
