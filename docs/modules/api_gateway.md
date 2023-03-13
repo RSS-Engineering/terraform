@@ -30,7 +30,7 @@ module "api_gateway" {
       "function_name" = module.lambda_rest_api.function_name
     }
   }
-  
+
   routes = {
     # Send requests to / to the "rest_api_handler" lambda after passing through the authorizer
     "/" = {
@@ -105,4 +105,5 @@ In addition to all arguments above, the following attributes are exported:
 * `api_id` - The id of the API Gateway
 * `hostname` - The string hostname of the API Gateway
 * `stage_url` - The full url of the exposed stage
+* `stage_arn` - The ARN of the exposed stage
 * `log_role_arn` - The cloudwatch log role created if `apigateway_cloudwatch_role_arn` is not supplied
