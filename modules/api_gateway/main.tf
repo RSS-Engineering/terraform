@@ -29,6 +29,8 @@ locals {
   subroutes = { for key, value in local.routes : key => value if key != "" }
   redeployment_hash = sha1(jsonencode(concat(
     [
+      var.name
+      ], [
       for key, value in aws_api_gateway_resource.rest_api_route_resource : value.id
       ], [
       for key, value in aws_api_gateway_method.rest_api_route_method : value.id
