@@ -29,6 +29,8 @@ locals {
   subroutes = { for key, value in local.routes : key => value if key != "" }
   redeployment_hash = sha1(jsonencode(concat(
     [
+      var.name
+      ], [
       for key, value in aws_api_gateway_resource.rest_api_route_resource : value.id
       ], [
       for key, value in aws_api_gateway_method.rest_api_route_method : value.id
@@ -110,6 +112,7 @@ resource "aws_api_gateway_authorizer" "authorizer" {
 
   name        = "api-authorizer-${each.key}"
   rest_api_id = aws_api_gateway_rest_api.rest_api.id
+  type        = lookup(var.lambdas[each.key], "authorizer_type", "TOKEN")
   # authorizer_uri looks funny because of https://github.com/hashicorp/terraform-provider-aws/issues/26619
   authorizer_uri                   = replace(data.aws_lambda_function.lambda[each.key].invoke_arn, "/\\:\\d{1,3}\\/invocations/", "/invocations")
   authorizer_credentials           = aws_iam_role.invocation_role.arn
