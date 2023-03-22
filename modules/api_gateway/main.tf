@@ -22,16 +22,38 @@ locals {
       lambda_key     = lookup(value, "lambda_key", "")
       proxy_url      = lookup(value, "proxy_url", "")
       type           = lookup(value, "type", "AWS_PROXY")
-      path_params    = regexall("(?:{)([A-Za-z][A-Za-z0-9]+)(?:[+]?})", key)
+      path_params    = regexall("(?:{)([A-Za-z][_A-Za-z0-9]+)(?:[+]?})", reverse(split("/", key))[0])
+      path_part      = reverse(split("/", key))[0]
+      parent_path    = length(split("/", key)) == 1 ? "" : substr(key, 1, length(key)-(length(reverse(split("/", key))[0])) - 2)
       headers        = lookup(value, "headers", "")
     }
   }
-  subroutes = { for key, value in local.routes : key => value if key != "" }
+  route_resources = {
+    "1" = { for key, value in local.level_1_routes : key => aws_api_gateway_resource.rest_api_route_1d_resource[key].id }
+    "2" = { for key, value in local.level_2_routes : key => aws_api_gateway_resource.rest_api_route_2d_resource[key].id }
+    "3" = { for key, value in local.level_3_routes : key => aws_api_gateway_resource.rest_api_route_3d_resource[key].id }
+    "4" = { for key, value in local.level_4_routes : key => aws_api_gateway_resource.rest_api_route_4d_resource[key].id }
+    "5" = { for key, value in local.level_5_routes : key => aws_api_gateway_resource.rest_api_route_5d_resource[key].id }
+  }
+  root_route = local.routes[""]
+  level_1_routes = { for key, value in local.routes : key => value if length(split("/", key)) == 1 && key != "" }
+  level_2_routes = { for key, value in local.routes : key => value if length(split("/", key)) == 2 }
+  level_3_routes = { for key, value in local.routes : key => value if length(split("/", key)) == 3 }
+  level_4_routes = { for key, value in local.routes : key => value if length(split("/", key)) == 4 }
+  level_5_routes = { for key, value in local.routes : key => value if length(split("/", key)) == 5 }
   redeployment_hash = sha1(jsonencode(concat(
     [
       var.name
       ], [
-      for key, value in aws_api_gateway_resource.rest_api_route_resource : value.id
+      for key, value in aws_api_gateway_resource.rest_api_route_1d_resource : value.id
+      ], [
+      for key, value in aws_api_gateway_resource.rest_api_route_2d_resource : value.id
+      ], [
+      for key, value in aws_api_gateway_resource.rest_api_route_3d_resource : value.id
+      ], [
+      for key, value in aws_api_gateway_resource.rest_api_route_4d_resource : value.id
+      ], [
+      for key, value in aws_api_gateway_resource.rest_api_route_5d_resource : value.id
       ], [
       for key, value in aws_api_gateway_method.rest_api_route_method : value.id
       ], [
@@ -147,19 +169,52 @@ resource "aws_api_gateway_rest_api" "rest_api" {
 }
 
 # routes
-resource "aws_api_gateway_resource" "rest_api_route_resource" {
-  for_each = local.subroutes
+resource "aws_api_gateway_resource" "rest_api_route_1d_resource" {
+  for_each = local.level_1_routes
 
   rest_api_id = aws_api_gateway_rest_api.rest_api.id
   parent_id   = aws_api_gateway_rest_api.rest_api.root_resource_id
-  path_part   = each.key
+  path_part   = each.value["path_part"]
+}
+
+resource "aws_api_gateway_resource" "rest_api_route_2d_resource" {
+  for_each = local.level_2_routes
+
+  rest_api_id = aws_api_gateway_rest_api.rest_api.id
+  parent_id   = aws_api_gateway_resource.rest_api_route_1d_resource[each.value["parent_path"]].id
+  path_part   = each.value["path_part"]
+}
+
+resource "aws_api_gateway_resource" "rest_api_route_3d_resource" {
+  for_each = local.level_3_routes
+
+  rest_api_id = aws_api_gateway_rest_api.rest_api.id
+  parent_id   = aws_api_gateway_resource.rest_api_route_2d_resource[each.value["parent_path"]].id
+  path_part   = each.value["path_part"]
+}
+
+resource "aws_api_gateway_resource" "rest_api_route_4d_resource" {
+  for_each = local.level_4_routes
+
+  rest_api_id = aws_api_gateway_rest_api.rest_api.id
+  parent_id   = aws_api_gateway_resource.rest_api_route_3d_resource[each.value["parent_path"]].id
+  path_part   = each.value["path_part"]
+}
+
+resource "aws_api_gateway_resource" "rest_api_route_5d_resource" {
+  for_each = local.level_5_routes
+
+  rest_api_id = aws_api_gateway_rest_api.rest_api.id
+  parent_id   = aws_api_gateway_resource.rest_api_route_4d_resource[each.value["parent_path"]].id
+  path_part   = each.value["path_part"]
 }
 
 resource "aws_api_gateway_method" "rest_api_route_method" {
   for_each = local.routes
 
   rest_api_id   = aws_api_gateway_rest_api.rest_api.id
-  resource_id   = each.key != "" ? aws_api_gateway_resource.rest_api_route_resource[each.key].id : aws_api_gateway_rest_api.rest_api.root_resource_id
+  resource_id   = each.key == "" ? aws_api_gateway_rest_api.rest_api.root_resource_id : local.route_resources[tostring(length(split("/", each.key)))][each.key]
+
   http_method   = each.value["method"]
   authorization = each.value["authorizer_key"] == "" ? "NONE" : "CUSTOM"
   authorizer_id = (
@@ -176,7 +231,7 @@ resource "aws_api_gateway_integration" "rest_api_route_integration" {
   for_each = local.routes
 
   rest_api_id             = aws_api_gateway_rest_api.rest_api.id
-  resource_id             = each.key != "" ? aws_api_gateway_resource.rest_api_route_resource[each.key].id : aws_api_gateway_rest_api.rest_api.root_resource_id
+  resource_id             = each.key == "" ? aws_api_gateway_rest_api.rest_api.root_resource_id : local.route_resources[length(split("/", each.key))][each.key]
   http_method             = aws_api_gateway_method.rest_api_route_method[each.key].http_method
   integration_http_method = each.value["lambda_key"] != "" ? "POST" : each.value["method"]
   type                    = each.value["type"]
