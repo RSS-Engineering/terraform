@@ -44,6 +44,13 @@ module "api_gateway" {
       type = "HTTP_PROXY"
       proxy_url = "https://api.notifications.rackspace.com/categories"
     }
+    
+    # Send GET requests to /categories/{any_subpath+} to the proxy_url (bypassing the authorizer)
+    "/categories/{any_subpath}" = {
+      method = "GET"
+      type = "HTTP_PROXY"
+      proxy_url = "https://api.notifications.rackspace.com/categories/{any_subpath}}"
+    }
 
     # Send GET requests to /health to the "rest_api_handler" lambda (bypassing the authorizer)
     "/health" = {
@@ -73,7 +80,7 @@ The following arguments are supported:
 * `description` - The API Gateway description.
 * `stage_name` - API stage name, applied as suffix to log group name and passed as the `STAGE_NAME` variable. (Use this for frameworks that need to know the _base_path_.)
 * `endpoint_type` - (optional, default "EDGE") - Endpoint configuration type. ["REGIONAL"](https://docs.aws.amazon.com/apigateway/latest/developerguide/create-regional-api.html) or ["EDGE"](https://docs.aws.amazon.com/apigateway/latest/developerguide/create-api-resources-methods.html)
-* `routes` - A mapping of path prefixes to `route` mappings to define the behavior at that path prefix (The leading '/' is cosmetic. All paths are applied at the root of the stage).
+* `routes` - A mapping of path prefixes to `route` mappings to define the behavior at that path prefix (The leading '/' is cosmetic. Paths can contain up to five levels deep.).
 * `tags` - (optional) A mapping of tags to be applied to all resources.
 * `log_retention_in_days` - (optional, default 0) - number of days to retain logs. 0 (the default) means to never expire logs. Other valid values are: 1, 3, 5, 7, 14, 30, 60, 90, 120, 150, 180, 365, 400, 545, 731, 1827, 3653.
 * `lambdas` - A mapping of string keys to an attribute mapping. The keys are arbitrary for reference in `root_route` and `route` entries.
