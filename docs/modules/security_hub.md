@@ -12,21 +12,10 @@ This module is just one part of a recommended security monitoring architecture -
 
 ```terraform
 module "security_hub_ap-northeast-1" {
-  source = "github.com/RSS-Engineering/terraform.git?ref={commit}/modules/security_hub"
+  source    = "github.com/RSS-Engineering/terraform.git?ref={commit}/modules/security_hub"
+  instance  = var.environment
   providers = {
     aws = aws.ap-northeast-1
-  }
-}
-```
-
-It is also highly recommended to aggregate the security findings from Security Hub into a centralized account whose sole responsibility is Security Hub monitoring and notifications.
-
-```terraform
-resource "aws_securityhub_invite_accepter" "invitee" {
-  depends_on = [module.security_hub_us-west-2.security_hub]
-  master_id  = var.security_hub_admin_account_id
-  providers = {
-    aws = aws.us-west-2
   }
 }
 ```
@@ -35,7 +24,10 @@ resource "aws_securityhub_invite_accepter" "invitee" {
 
 ---
 
-Currently no arguments are supported.
+The following arguments are supported:
+
+- `instance` - The instance of GuardDuty to accept invitations from. By default, this accepts `dev`, `prod`, and defaults to `null`. When `null`, this module will not be configured to accept invitations.
+- `admin_account` - Map of AWS Account IDs to accept invitations from, defaults to the `dev` and `prod` instances of Security Hub provisioned in the RSS-Engineering/platform-security-hub repo.
 
 ## Attributes Reference
 

@@ -15,3 +15,9 @@ resource "aws_securityhub_product_subscription" "guardduty" {
   depends_on  = [aws_securityhub_account.security_hub]
   product_arn = "arn:aws:securityhub:${data.aws_region.current.name}::product/aws/guardduty"
 }
+
+resource "aws_securityhub_invite_accepter" "invitee" {
+  count      = var.instance == null ? 0 : 1
+  depends_on = [aws_securityhub_account.security_hub]
+  master_id  = var.admin_account[var.instance]
+}

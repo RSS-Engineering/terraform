@@ -17,7 +17,16 @@ resource "aws_guardduty_detector" "detector" {
         }
       }
     }
-    # rds protection not yet manageable by terraform
-    # and is enabled by default
+    # rds and lambda protections are not yet manageable by terraform
+    # but they are enabled by default when the detector is first created
   }
+}
+
+data "aws_region" "current" {}
+
+resource "aws_guardduty_invite_accepter" "invitee" {
+  count             = var.instance == null ? 0 : 1
+  depends_on        = [aws_guardduty_detector.detector]
+  detector_id       = var.detectors[var.instance][data.aws_region.current.name]
+  master_account_id = var.admin_account[var.instance]
 }
