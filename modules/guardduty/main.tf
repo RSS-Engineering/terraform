@@ -27,6 +27,6 @@ data "aws_region" "current" {}
 resource "aws_guardduty_invite_accepter" "invitee" {
   count             = var.instance == null ? 0 : 1
   depends_on        = [aws_guardduty_detector.detector]
-  detector_id       = var.detectors[var.instance][data.aws_region.current.name]
+  detector_id       = aws_guardduty_detector.detector.id
   master_account_id = var.admin_account[var.instance]
 }
