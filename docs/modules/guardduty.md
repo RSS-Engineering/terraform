@@ -28,7 +28,6 @@ The following arguments are supported:
 
 - `instance` - The instance of GuardDuty to accept invitations from. By default, this accepts `dev`, `prod`, and defaults to `null`. When `null`, this module will not be configured to accept invitations.
 - `admin_account` - Map of AWS Account IDs to accept invitations from, defaults to the `dev` and `prod` instances of Security Hub provisioned in the RSS-Engineering/platform-security-hub repo.
-- `detectors` - Map of GuardDuty Detector IDs to accept invitations from, defaults to the detectors provisioned in the RSS-Engineering/platform-security-hub repo.
 
 ## Attributes Reference
 
