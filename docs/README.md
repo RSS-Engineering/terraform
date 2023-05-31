@@ -22,11 +22,11 @@ They can be included in your Terraform code like this ([kms_secrets](modules/kms
 ```terraform
 module "secrets" {
   source = "github.com/RSS-Engineering/terraform.git?ref={commit}/modules/kms_secrets"
-  
+
   context = {
     environment = "dev"
   }
-  
+
   secrets = [{
     key        = "password"
     kms_key_id = "mrk-1234567890098765432"
@@ -38,6 +38,7 @@ module "secrets" {
 Terraform good practice is to specify a commit hash when sourcing an external module to prevent module changes from unexpectly breaking your deployment pipeline.
 
 ---
+
 ### [api_gateway](modules/api_gateway.md)
 
 The [api_gateway](modules/api_gateway.md) module exposes a simple interface for specifying an API Gateway with the AWS [API V1 resources](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/api_gateway_rest_api) in a declarative manner.
@@ -50,3 +51,6 @@ The [datadog_aws_integration](modules/datadog_aws_integration.md) module creates
 
 The [kms_secrets](modules/kms_secrets.md) module allows you to store multiple secrets in your repository in encrypted form. This provides secrets that terraform can use without needing them to be stored and managed in a separate secure store such as PasswordSafe, SecretsManager or as an SSM Param.
 
+### [security_hub](modules/security_hub.md)/[guardduty](modules/guardduty.md)
+
+The [security_hub](modules/security_hub.md) and [guardduty](modules/guardduty.md) modules provision best-practice security monitoring in an account, which can be used for notifications on potential security incidents. These should be provisioned together, and should be provisioned in all active regions in an account - not just the ones which have resources.
