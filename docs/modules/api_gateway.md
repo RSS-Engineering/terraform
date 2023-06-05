@@ -44,7 +44,7 @@ module "api_gateway" {
       type = "HTTP_PROXY"
       proxy_url = "https://api.notifications.rackspace.com/categories"
     }
-    
+
     # Send GET requests to /categories/{any_subpath+} to the proxy_url (bypassing the authorizer)
     "/categories/{any_subpath}" = {
       method = "GET"
@@ -90,6 +90,8 @@ The following arguments are supported:
 The `lambda` attribute map contains:
 
 * `function_name` - the function name of the lambda to be called
+* `function_arn` - the ARN of the Lambda function
+* `function_invoke_arn` - the special invocation ARN of the Lambda function
 * `authorizer_result_ttl_in_seconds` - (optional, default to "900") ttl in seconds for an authorizer result.
 * `identity_source` - (optional, default "method.request.header.X-Auth-Token") identity source for an authorizer lambda.
 * `authorizer_type` - (optional, default "TOKEN") type of authorizer determining the payload, other possible values: "REQUEST" and "COGNITO_USER_POOLS".
