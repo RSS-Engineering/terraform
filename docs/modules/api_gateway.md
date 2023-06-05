@@ -22,17 +22,23 @@ module "api_gateway" {
   log_retention_in_days = 0
 
   # Specify lambdas by (arbitrary) key and function-name for later reference via a route.
+  # The function ARN and invocation ARNs also have to be specified.
   lambdas = {
     "authorizer_lambda" = {
-      "function_name" = module.lambda_authorizer.function_name
+      "function_name"       = module.lambda_authorizer.lambda_function_name
+      "function_arn"        = module.lambda_authorizer.lambda_function_arn
+      "function_invoke_arn" = module.lambda_authorizer.lambda_function_invoke_arn
     }
     "rest_api_handler" = {
-      "function_name" = module.lambda_rest_api.function_name
+      "function_name"       = module.lambda_rest_api.lambda_function_name
+      "function_arn"        = module.lambda_rest_api.lambda_function_arn
+      "function_invoke_arn" = module.lambda_rest_api.lambda_function_invoke_arn
     }
   }
 
   routes = {
-    # Send requests to / to the "rest_api_handler" lambda after passing through the authorizer
+    # Send requests to / to the "rest_api_handler" lambda after passing through the authorizer.
+    # The root route must always be specified.
     "/" = {
       authorizer_key = "authorizer_lambda"
       lambda_key     = "rest_api_handler"
