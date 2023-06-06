@@ -42,25 +42,16 @@ locals {
   level_4_routes = { for key, value in local.routes : key => value if length(split("/", key)) == 4 }
   level_5_routes = { for key, value in local.routes : key => value if length(split("/", key)) == 5 }
   redeployment_hash = sha1(jsonencode(concat(
-    [
-      var.name
-      ], [
-      for key, value in aws_api_gateway_resource.rest_api_route_1d_resource : value.id
-      ], [
-      for key, value in aws_api_gateway_resource.rest_api_route_2d_resource : value.id
-      ], [
-      for key, value in aws_api_gateway_resource.rest_api_route_3d_resource : value.id
-      ], [
-      for key, value in aws_api_gateway_resource.rest_api_route_4d_resource : value.id
-      ], [
-      for key, value in aws_api_gateway_resource.rest_api_route_5d_resource : value.id
-      ], [
-      for key, value in aws_api_gateway_method.rest_api_route_method : value.id
-      ], [
-      for key, value in aws_api_gateway_integration.rest_api_route_integration : value.id
-      ], [
-      for key, value in aws_api_gateway_authorizer.authorizer : value.id
-    ]
+    [var.name],
+    [var.redeployment_key],
+    [for key, value in aws_api_gateway_resource.rest_api_route_1d_resource : value.id],
+    [for key, value in aws_api_gateway_resource.rest_api_route_2d_resource : value.id],
+    [for key, value in aws_api_gateway_resource.rest_api_route_3d_resource : value.id],
+    [for key, value in aws_api_gateway_resource.rest_api_route_4d_resource : value.id],
+    [for key, value in aws_api_gateway_resource.rest_api_route_5d_resource : value.id],
+    [for key, value in aws_api_gateway_method.rest_api_route_method : value.id],
+    [for key, value in aws_api_gateway_integration.rest_api_route_integration : value.id],
+    [for key, value in aws_api_gateway_authorizer.authorizer : value.id],
   )))
 }
 

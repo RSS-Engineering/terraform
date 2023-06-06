@@ -2,6 +2,10 @@ variable "name" {
   type = string
 }
 
+variable "redeployment_key" {
+  type = string
+}
+
 variable "description" {
   type = string
 }
