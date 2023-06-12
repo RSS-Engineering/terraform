@@ -22,17 +22,23 @@ module "api_gateway" {
   log_retention_in_days = 0
 
   # Specify lambdas by (arbitrary) key and function-name for later reference via a route.
+  # The function ARN and invocation ARNs also have to be specified.
   lambdas = {
     "authorizer_lambda" = {
-      "function_name" = module.lambda_authorizer.function_name
+      "function_name"       = module.lambda_authorizer.lambda_function_name
+      "function_arn"        = module.lambda_authorizer.lambda_function_arn
+      "function_invoke_arn" = module.lambda_authorizer.lambda_function_invoke_arn
     }
     "rest_api_handler" = {
-      "function_name" = module.lambda_rest_api.function_name
+      "function_name"       = module.lambda_rest_api.lambda_function_name
+      "function_arn"        = module.lambda_rest_api.lambda_function_arn
+      "function_invoke_arn" = module.lambda_rest_api.lambda_function_invoke_arn
     }
   }
 
   routes = {
-    # Send requests to / to the "rest_api_handler" lambda after passing through the authorizer
+    # Send requests to / to the "rest_api_handler" lambda after passing through the authorizer.
+    # The root route must always be specified.
     "/" = {
       authorizer_key = "authorizer_lambda"
       lambda_key     = "rest_api_handler"
@@ -44,7 +50,7 @@ module "api_gateway" {
       type = "HTTP_PROXY"
       proxy_url = "https://api.notifications.rackspace.com/categories"
     }
-    
+
     # Send GET requests to /categories/{any_subpath+} to the proxy_url (bypassing the authorizer)
     "/categories/{any_subpath}" = {
       method = "GET"
@@ -90,6 +96,8 @@ The following arguments are supported:
 The `lambda` attribute map contains:
 
 * `function_name` - the function name of the lambda to be called
+* `function_arn` - the ARN of the Lambda function
+* `function_invoke_arn` - the special invocation ARN of the Lambda function
 * `authorizer_result_ttl_in_seconds` - (optional, default to "900") ttl in seconds for an authorizer result.
 * `identity_source` - (optional, default "method.request.header.X-Auth-Token") identity source for an authorizer lambda.
 * `authorizer_type` - (optional, default "TOKEN") type of authorizer determining the payload, other possible values: "REQUEST" and "COGNITO_USER_POOLS".

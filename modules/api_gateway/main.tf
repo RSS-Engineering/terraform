@@ -66,13 +66,6 @@ locals {
 
 data "aws_region" "current" {}
 
-# API GATEWAY AUTHORIZER LAMBDA
-data "aws_lambda_function" "lambda" {
-  for_each = var.lambdas
-
-  function_name = each.value["function_name"]
-}
-
 data "aws_iam_policy_document" "assume_role" {
   statement {
     effect  = "Allow"
@@ -122,7 +115,7 @@ resource "aws_iam_role_policy" "invocation_policy" {
         "Action" = "lambda:InvokeFunction",
         "Effect" = "Allow",
         "Resource" = [
-          for key in distinct(local.authorizer_list) : data.aws_lambda_function.lambda[key].arn
+          for key in distinct(local.authorizer_list) : var.lambdas[key]["function_arn"]
         ]
       }
     ]
@@ -136,7 +129,7 @@ resource "aws_api_gateway_authorizer" "authorizer" {
   rest_api_id = aws_api_gateway_rest_api.rest_api.id
   type        = lookup(var.lambdas[each.key], "authorizer_type", "TOKEN")
   # authorizer_uri looks funny because of https://github.com/hashicorp/terraform-provider-aws/issues/26619
-  authorizer_uri                   = replace(data.aws_lambda_function.lambda[each.key].invoke_arn, "/\\:\\d{1,3}\\/invocations/", "/invocations")
+  authorizer_uri                   = replace(var.lambdas[each.key]["function_invoke_arn"], "/\\:\\d{1,3}\\/invocations/", "/invocations")
   authorizer_credentials           = aws_iam_role.invocation_role.arn
   identity_source                  = lookup(var.lambdas[each.key], "identity_source", "method.request.header.X-Auth-Token")
   authorizer_result_ttl_in_seconds = parseint(lookup(var.lambdas[each.key], "authorizer_result_ttl_in_seconds", "900"), 10)
@@ -149,7 +142,7 @@ resource "aws_lambda_permission" "lambda_invoke_permission" {
 
   statement_id  = "allow-${var.name}-apigateway-invoke-${each.key}"
   action        = "lambda:InvokeFunction"
-  function_name = data.aws_lambda_function.lambda[each.key].function_name
+  function_name = each.value["function_name"]
   principal     = "apigateway.amazonaws.com"
 
   # The /*/*/* part allows invocation from any stage, method and resource path
@@ -237,7 +230,7 @@ resource "aws_api_gateway_integration" "rest_api_route_integration" {
   type                    = each.value["type"]
   uri = (
     each.value["lambda_key"] != ""
-    ? replace(data.aws_lambda_function.lambda[each.value["lambda_key"]].invoke_arn, "/\\:\\d{1,3}\\/invocations/", "/invocations")
+    ? replace(var.lambdas[each.value["lambda_key"]]["function_invoke_arn"], "/\\:\\d{1,3}\\/invocations/", "/invocations")
     : each.value["proxy_url"]
   )
   cache_key_parameters = []
