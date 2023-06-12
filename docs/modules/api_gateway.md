@@ -86,6 +86,7 @@ The following arguments are supported:
 * `lambdas` - A mapping of string keys to an attribute mapping. The keys are arbitrary for reference in `root_route` and `route` entries.
 * `set_cloudwatch_role` - A boolean indicating if the API Gateway Cloudwatch role should be set
 * `apigateway_cloudwatch_role_arn` - (optional) If `set_cloudwatch_role` is true, then specifying this will set the specific role. If not provided, a role will be created.
+* `redeployment_hash` - (optional) - Additional entropy variable to ensure a fresh deployment is made when applicable changes are made.
 
 The `lambda` attribute map contains:
 
