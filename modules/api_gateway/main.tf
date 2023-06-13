@@ -41,9 +41,9 @@ locals {
   level_3_routes = { for key, value in local.routes : key => value if length(split("/", key)) == 3 }
   level_4_routes = { for key, value in local.routes : key => value if length(split("/", key)) == 4 }
   level_5_routes = { for key, value in local.routes : key => value if length(split("/", key)) == 5 }
-  redeployment_hash = sha1(jsonencode(concat(
+  redeployment_hash = var.redeployment_hash != "" ? var.redeployment_hash : sha1(jsonencode(concat(
     [
-      var.name
+      var.name,
       ], [
       for key, value in aws_api_gateway_resource.rest_api_route_1d_resource : value.id
       ], [
