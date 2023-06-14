@@ -22,7 +22,7 @@ locals {
       lambda_key     = lookup(value, "lambda_key", "")
       proxy_url      = lookup(value, "proxy_url", "")
       type           = lookup(value, "type", "AWS_PROXY")
-      path_params    = regexall("(?:{)([A-Za-z][_A-Za-z0-9]+)(?:[+]?})", reverse(split("/", key))[0])
+      path_params    = regexall("(?:{)([A-Za-z][_A-Za-z0-9]+)(?:[+]?})", key)
       path_part      = reverse(split("/", key))[0]
       parent_path    = length(split("/", key)) == 1 ? "" : substr(key, 1, length(key)-(length(reverse(split("/", key))[0])) - 2)
       headers        = lookup(value, "headers", "")
