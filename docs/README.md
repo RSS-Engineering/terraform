@@ -51,6 +51,14 @@ The [datadog_aws_integration](modules/datadog_aws_integration.md) module creates
 
 The [kms_secrets](modules/kms_secrets.md) module allows you to store multiple secrets in your repository in encrypted form. This provides secrets that terraform can use without needing them to be stored and managed in a separate secure store such as PasswordSafe, SecretsManager or as an SSM Param.
 
+### [s3_bucket](modules/s3_bucket.md)
+
+The [s3_bucket](modules/s3_bucket.md) module provision basic s3 buckets which are common across PE infrastructure. The main use case for this are for micro-uis and normal s3 storage, like for terraform state, configuration, logs, etc.
+
+### [s3_access_logging](modules/s3_access_logging.md)
+
+The [s3_access_logging](modules/s3_access_logging.md) module handles the logic for creating an s3 access log bucket along with enabling access logging on several buckets at once.
+
 ### [security_hub](modules/security_hub.md)/[guardduty](modules/guardduty.md)
 
 The [security_hub](modules/security_hub.md) and [guardduty](modules/guardduty.md) modules provision best-practice security monitoring in an account, which can be used for notifications on potential security incidents. These should be provisioned together, and should be provisioned in all active regions in an account - not just the ones which have resources.
