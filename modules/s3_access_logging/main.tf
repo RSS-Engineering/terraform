@@ -10,6 +10,14 @@ module "s3_access_log_bucket" {
   name              = var.bucket_name
   enable_versioning = false
   bucket_policies   = [data.aws_iam_policy_document.server_access_logs_policy.json]
+  expiration_days   = var.default_expiration_days
+
+  additional_expiration_rules = [
+    for source in var.log_sources : {
+      expiration_days = source.expiration_days
+      prefix = "${source.bucket_name}/"
+    } if source.expiration_days != var.default_expiration_days
+  ]
 }
 
 # https://docs.aws.amazon.com/AmazonS3/latest/userguide/enable-server-access-logging.html
@@ -57,32 +65,7 @@ resource "aws_s3_bucket_logging" "bucket_logging" {
   target_prefix = "${each.key}/"
 }
 
-resource "aws_s3_bucket_lifecycle_configuration" "s3_access_log_bucket" {
-  bucket = module.s3_access_log_bucket.id
-
-  dynamic "rule" {
-    for_each = { for source in var.log_sources : source.bucket_name => source if source.expiration_days != var.default_expiration_days }
-
-    content {
-      id     = "expire-${rule.key}"
-      status = "Enabled"
-
-      expiration {
-        days = rule.value.expiration_days
-      }
-
-      filter {
-        prefix = "${rule.key}/"
-      }
-    }
-  }
-
-  rule {
-    id     = "expire-default"
-    status = "Enabled"
-
-    expiration {
-      days = var.default_expiration_days
-    }
-  }
+moved {
+  from = aws_s3_bucket_lifecycle_configuration.s3_access_log_bucket
+  to = module.s3_access_log_bucket.aws_s3_bucket_lifecycle_configuration.this
 }

@@ -88,3 +88,63 @@ resource "aws_s3_bucket_versioning" "this" {
     status = "Enabled"
   }
 }
+
+resource "aws_s3_bucket_lifecycle_configuration" "this" {
+  bucket = aws_s3_bucket.this.id
+
+  dynamic "rule" {
+    for_each = { for expire_rule in var.additional_expiration_rules : expire_rule.prefix => expire_rule }
+
+    content {
+      id     = "expire-${substr(rule.value.prefix, 0, 248)}" # max is 255 chars
+      status = "Enabled"
+
+      dynamic "expiration" {
+        for_each = { for val in [rule.value.expiration_days] : val => val if val != null }
+
+        content {
+          days = rule.value.expiration_days
+        }
+      }
+
+      dynamic "noncurrent_version_expiration" {
+        for_each = { for val in [rule.value.noncurrent_expiration_days] : val => val if val != null }
+
+        content {
+          noncurrent_days = rule.value.noncurrent_expiration_days
+        }
+      }
+
+      filter {
+        prefix = rule.value.prefix
+      }
+    }
+  }
+
+  rule {
+    id     = "expire-default"
+    status = "Enabled"
+
+    abort_incomplete_multipart_upload {
+      days_after_initiation = 7
+    }
+
+    dynamic "expiration" {
+      for_each = { for val in [var.expiration_days] : val => val if val != null }
+
+      content {
+        days = var.expiration_days
+      }
+    }
+
+    dynamic "noncurrent_version_expiration" {
+      for_each = { for val in [var.noncurrent_expiration_days] : val => val if val != null }
+
+      content {
+        noncurrent_days = var.noncurrent_expiration_days
+      }
+    }
+  }
+
+  depends_on = [aws_s3_bucket_versioning.this]
+}

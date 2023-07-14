@@ -16,8 +16,9 @@ If your bucket already exists and uses ACLs (which are deprecated), you may need
 module "terraform_state_bucket" {
   source = "./modules/s3_bucket"
 
-  name              = "whatever-terraform-state-${var.environment}-${local.account_id}"
-  enable_versioning = true
+  name                       = "whatever-terraform-state-${var.environment}-${local.account_id}"
+  enable_versioning          = true
+  noncurrent_expiration_days = 90
 }
 ```
 
@@ -63,7 +64,18 @@ The following arguments are supported:
 - `name` - name of the bucket
 - `bucket_policies` - list of additional bucket policies (as a json string) to attach to the bucket
 - `enable_versioning` - whether or not to enable versioning, defaults to `false`
+- `expiration_days` - number of days until objects expire, defaults to `null` for no expiration
+- `noncurrent_expiration_days` - number of days until noncurrent versions of objects expire, defaults to `null` for no expiration
+- `additional_expiration_rules` - list of additional expiration rules, see `additional_expiration_rules` below
 - `cloudfront_arns` - list of cloudfront distributions to allow read access to the bucket
+
+### additional_expiration_rules
+
+Must specify either `expiration_days` or `noncurrent_expiration_days`
+
+- `prefix` - s3 object prefix that the rule applies to
+- `expiration_days` - number of days until objects expire, defaults to `null` for no expiration
+- `noncurrent_expiration_days` - number of days until noncurrent versions of objects expire, defaults to `null` for no expiration
 
 ## Attributes Reference
 
