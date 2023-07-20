@@ -102,7 +102,7 @@ runs:
         if-no-files-found: error
         retention-days: 7
 
-    - uses: actions/github-script@0.9.0
+    - uses: actions/github-script@v6
       if: steps.plan.outcome == 'success' && inputs.add_plan_to_pr == 'true' && github.event_name == 'pull_request' && !contains(steps.plan.outputs.stdout, inputs.ignore_plan_phrase)
       env:
         PLAN: "${{ steps.plan.outputs.stdout }}"
@@ -120,13 +120,30 @@ runs:
 
           *Pusher: @${{ github.actor }}, Action: \`${{ github.event_name }}\`*
           `;
-          github.issues.createComment({
-            issue_number: context.issue.number,
+          // Find bot comment and update it if exists
+          const { data: comments } = await github.rest.issues.listComments({
             owner: context.repo.owner,
             repo: context.repo.repo,
-            body: output
+            issue_number: context.issue.number,
           })
-
+          const botComment = comments.find(comment => {
+            return comment.user.type === 'Bot' && comment.body.includes('Terraform Plan')
+          })
+          if (botComment) {
+            github.rest.issues.updateComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              comment_id: botComment.id,
+              body: output
+            })
+          } else {
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: output
+            })
+          }
     - name: Terraform Plan Status
       if: steps.plan.outcome == 'failure'
       shell: bash
