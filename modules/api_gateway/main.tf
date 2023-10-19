@@ -35,7 +35,6 @@ locals {
     "4" = { for key, value in local.level_4_routes : key => aws_api_gateway_resource.rest_api_route_4d_resource[key].id }
     "5" = { for key, value in local.level_5_routes : key => aws_api_gateway_resource.rest_api_route_5d_resource[key].id }
   }
-  root_route = local.routes[""]
   level_1_routes = { for key, value in local.routes : key => value if length(split("/", key)) == 1 && key != "" }
   level_2_routes = { for key, value in local.routes : key => value if length(split("/", key)) == 2 }
   level_3_routes = { for key, value in local.routes : key => value if length(split("/", key)) == 3 }
