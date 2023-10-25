@@ -1,4 +1,5 @@
 locals {
+  account_id = data.aws_caller_identity.current.account_id
   authorizer_list = [
     for key, value in var.routes :
     value["authorizer_key"] if lookup(value, "authorizer_key", "") != ""
@@ -54,6 +55,7 @@ locals {
 }
 
 data "aws_region" "current" {}
+data "aws_caller_identity" "current" {}
 
 data "aws_iam_policy_document" "assume_role" {
   statement {
@@ -103,9 +105,11 @@ resource "aws_iam_role_policy" "invocation_policy" {
       {
         "Action" = "lambda:InvokeFunction",
         "Effect" = "Allow",
-        "Resource" = [
-          for key in distinct(local.authorizer_list) : var.lambdas[key]["function_arn"]
-        ]
+        "Resource" = distinct([
+          # use wildcard for versioned lambdas to avoid
+          # revoking permissions on previous version during deploy
+          for lambda_key, value in var.lambdas : replace(value.function_arn, "/:\\d+$/", ":*")
+        ])
       }
     ]
   })
@@ -123,20 +127,6 @@ resource "aws_api_gateway_authorizer" "authorizer" {
   authorizer_result_ttl_in_seconds = parseint(lookup(var.lambdas[each.key], "authorizer_result_ttl_in_seconds", "900"), 10)
 }
 # END
-
-# API_GATEWAY
-resource "aws_lambda_permission" "lambda_invoke_permission" {
-  for_each = var.skip_invoke_permissions ? {} : var.lambdas
-
-  statement_id  = "allow-${var.name}-apigateway-invoke-${each.key}"
-  action        = "lambda:InvokeFunction"
-  function_name = each.value["function_name"]
-  principal     = "apigateway.amazonaws.com"
-
-  # The /*/*/* part allows invocation from any stage, method and resource path
-  # within API Gateway REST API.
-  source_arn = "${aws_api_gateway_rest_api.rest_api.execution_arn}/*/*/*"
-}
 
 resource "aws_api_gateway_rest_api" "rest_api" {
   name        = var.name
@@ -216,6 +206,7 @@ resource "aws_api_gateway_integration" "rest_api_route_integration" {
   http_method             = aws_api_gateway_method.rest_api_route_method[each.key].http_method
   integration_http_method = each.value["lambda_key"] != "" ? "POST" : each.value["method"]
   type                    = each.value["type"]
+  credentials             = aws_iam_role.invocation_role.arn
   uri = (
     each.value["lambda_key"] != ""
     ? var.lambdas[each.value["lambda_key"]]["function_invoke_arn"]
