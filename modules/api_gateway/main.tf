@@ -117,8 +117,7 @@ resource "aws_api_gateway_authorizer" "authorizer" {
   name        = "api-authorizer-${each.key}"
   rest_api_id = aws_api_gateway_rest_api.rest_api.id
   type        = lookup(var.lambdas[each.key], "authorizer_type", "TOKEN")
-  # authorizer_uri looks funny because of https://github.com/hashicorp/terraform-provider-aws/issues/26619
-  authorizer_uri                   = replace(var.lambdas[each.key]["function_invoke_arn"], "/\\:\\d{1,3}\\/invocations/", "/invocations")
+  authorizer_uri                   = var.lambdas[each.key]["function_invoke_arn"]
   authorizer_credentials           = aws_iam_role.invocation_role.arn
   identity_source                  = lookup(var.lambdas[each.key], "identity_source", "method.request.header.X-Auth-Token")
   authorizer_result_ttl_in_seconds = parseint(lookup(var.lambdas[each.key], "authorizer_result_ttl_in_seconds", "900"), 10)
@@ -219,7 +218,7 @@ resource "aws_api_gateway_integration" "rest_api_route_integration" {
   type                    = each.value["type"]
   uri = (
     each.value["lambda_key"] != ""
-    ? replace(var.lambdas[each.value["lambda_key"]]["function_invoke_arn"], "/\\:\\d{1,3}\\/invocations/", "/invocations")
+    ? var.lambdas[each.value["lambda_key"]]["function_invoke_arn"]
     : each.value["proxy_url"]
   )
   cache_key_parameters = []
