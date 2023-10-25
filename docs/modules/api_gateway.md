@@ -93,6 +93,7 @@ The following arguments are supported:
 * `set_cloudwatch_role` - A boolean indicating if the API Gateway Cloudwatch role should be set
 * `apigateway_cloudwatch_role_arn` - (optional) If `set_cloudwatch_role` is true, then specifying this will set the specific role. If not provided, a role will be created.
 * `redeployment_hash` - (optional) - Entropy variable to trigger a deployment to be made. If omitted, this module will do its best to detect applicable changes.
+* `skip_invoke_permissions` - (optional, default `false`) - enable this to manage lambda permissions manually, required if using versioned lambdas.
 
 The `lambda` attribute map contains:
 
@@ -124,3 +125,4 @@ In addition to all arguments above, the following attributes are exported:
 * `stage_url` - The full url of the exposed stage
 * `stage_arn` - The ARN of the exposed stage
 * `log_role_arn` - The cloudwatch log role created if `apigateway_cloudwatch_role_arn` is not supplied
+* `execution_arn` - The execution_arn of the API gateway, usually used as part of the `source_arn` for lambda permissions

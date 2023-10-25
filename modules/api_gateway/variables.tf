@@ -46,6 +46,13 @@ variable "lambdas" {
   type = map(map(string))
 }
 
+variable "skip_invoke_permissions" {
+  description = "Set to true to manage lambda invoke permissions outside of this module."
+
+  type    = bool
+  default = false
+}
+
 variable "routes" {
   type = map(map(string))
 }

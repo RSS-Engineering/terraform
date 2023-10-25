@@ -126,7 +126,7 @@ resource "aws_api_gateway_authorizer" "authorizer" {
 
 # API_GATEWAY
 resource "aws_lambda_permission" "lambda_invoke_permission" {
-  for_each = var.lambdas
+  for_each = var.skip_invoke_permissions ? {} : var.lambdas
 
   statement_id  = "allow-${var.name}-apigateway-invoke-${each.key}"
   action        = "lambda:InvokeFunction"
