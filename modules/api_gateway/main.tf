@@ -125,6 +125,10 @@ resource "aws_api_gateway_authorizer" "authorizer" {
 # END
 
 # API_GATEWAY
+data "null_data_source" "lambda_invoke_arns" {
+  inputs = {for lambda_key,val in var.lambdas : lambda_key => val.function_invoke_arn}
+}
+
 resource "aws_lambda_permission" "lambda_invoke_permission" {
   for_each = var.lambdas
 
@@ -136,6 +140,12 @@ resource "aws_lambda_permission" "lambda_invoke_permission" {
   # The /*/*/* part allows invocation from any stage, method and resource path
   # within API Gateway REST API.
   source_arn = "${aws_api_gateway_rest_api.rest_api.execution_arn}/*/*/*"
+
+  lifecycle {
+    replace_triggered_by = [
+      data.null_data_source.lambda_invoke_arns.outputs[each.key]
+    ]
+  }
 }
 
 resource "aws_api_gateway_rest_api" "rest_api" {
