@@ -17,3 +17,7 @@ output "stage_arn" {
 output "log_role_arn" {
   value = var.apigateway_cloudwatch_role_arn != "" ? var.apigateway_cloudwatch_role_arn : aws_iam_role.log_role[0].arn
 }
+
+output "execution_arn" {
+  value = aws_api_gateway_rest_api.rest_api.execution_arn
+}
