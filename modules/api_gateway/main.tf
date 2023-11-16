@@ -121,6 +121,10 @@ resource "aws_api_gateway_authorizer" "authorizer" {
   authorizer_credentials           = (lookup(each.value, "function_arn", "") != "" ? aws_iam_role.invocation_role.arn : null)
   identity_source                  = lookup(each.value, "identity_source", "method.request.header.X-Auth-Token")
   authorizer_result_ttl_in_seconds = parseint(lookup(each.value, "authorizer_result_ttl_in_seconds", "900"), 10)
+
+  lifecycle {
+    prevent_destroy = true
+  }
 }
 # END
 
