@@ -102,7 +102,6 @@ The `authorizers` attribute map contains:
 * `function_invoke_arn` - the special invocation ARN of the Lambda function
 * `authorizer_result_ttl_in_seconds` - (optional, default to "900") ttl in seconds for an authorizer result.
 * `authorizer_type` - (optional, default "TOKEN") type of authorizer determining the payload, other possible values: "REQUEST" and "COGNITO_USER_POOLS".
-* `prevent_destroy` - (optional, default `False``) flag the authorizer for terraform lifecycle management
 
 The `lambda` attribute map contains:
 
