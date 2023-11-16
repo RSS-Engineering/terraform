@@ -43,7 +43,8 @@ variable "endpoint_type" {
 }
 
 variable "authorizers" {
-  type = map(map(string))
+  type    = map(map(string))
+  default = {}
 }
 
 variable "lambdas" {
