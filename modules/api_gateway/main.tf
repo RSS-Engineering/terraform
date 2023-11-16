@@ -1,9 +1,5 @@
 locals {
   account_id = data.aws_caller_identity.current.account_id
-  authorizer_list = distinct([
-    for key, value in var.authorizers :
-    value["authorizer_key"] if lookup(value, "authorizer_key", "") != ""
-  ])
   integration_lambda_list = [
     for key, value in var.routes :
     value["lambda_key"] if lookup(value, "lambda_key", "") != ""
@@ -90,7 +86,7 @@ EOF
 }
 
 resource "aws_iam_role_policy" "invocation_policy" {
-  count = length(local.authorizer_list) > 0 ? 1 : 0
+  count = length(var.authorizers) + length(var.lambdas) > 0 ? 1 : 0
 
   name = "${var.name}-apigateway-authorization-invocation-policy"
   role = aws_iam_role.invocation_role.id
@@ -101,11 +97,15 @@ resource "aws_iam_role_policy" "invocation_policy" {
       {
         "Action" = "lambda:InvokeFunction",
         "Effect" = "Allow",
-        "Resource" = distinct([
-          # use wildcard for versioned lambdas to avoid
-          # revoking permissions on previous version during deploy
-          for key, value in var.authorizers : replace(value.function_arn, "/:\\d+$/", ":*") if lookup(value, "function_arn", "") != ""
-        ])
+        "Resource" = [for e in distinct(
+          concat([
+            # use wildcard for versioned lambdas to avoid
+            # revoking permissions on previous version during deploy
+            for key, value in var.authorizers : replace(value.function_arn, "/:\\d+$/", ":*") if lookup(value, "function_arn", "") != ""
+            ], [
+            for key, value in var.lambdas : replace(value.function_arn, "/:\\d+$/", ":*")
+          ])
+        ): e]
       }
     ]
   })
