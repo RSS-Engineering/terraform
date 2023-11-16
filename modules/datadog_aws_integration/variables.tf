@@ -7,7 +7,7 @@ variable "host_tags" {
 
 variable "namespace_rules" {
   # https://registry.terraform.io/providers/DataDog/datadog/latest/docs/resources/integration_aws#account_specific_namespace_rules
-  type = map(bool)
+  type        = map(bool)
   description = "Enables or disables metric collection for specific AWS namespaces for this AWS account only"
 
   default = {}

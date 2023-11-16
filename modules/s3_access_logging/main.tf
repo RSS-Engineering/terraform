@@ -15,7 +15,7 @@ module "s3_access_log_bucket" {
   additional_expiration_rules = [
     for source in var.log_sources : {
       expiration_days = source.expiration_days
-      prefix = "${source.bucket_name}/"
+      prefix          = "${source.bucket_name}/"
     } if source.expiration_days != var.default_expiration_days
   ]
 }
@@ -67,5 +67,5 @@ resource "aws_s3_bucket_logging" "bucket_logging" {
 
 moved {
   from = aws_s3_bucket_lifecycle_configuration.s3_access_log_bucket
-  to = module.s3_access_log_bucket.aws_s3_bucket_lifecycle_configuration.this
+  to   = module.s3_access_log_bucket.aws_s3_bucket_lifecycle_configuration.this
 }
