@@ -75,7 +75,7 @@ runs:
       id: plan
       shell: bash
       run: |
-        terraform -chdir=${{ inputs.root }} plan -out "tf_plan_${{ github.sha }}" -no-color -input=false
+        terraform -chdir=${{ inputs.root }} plan -out "tf_plan_${{ github.sha }}" -no-color -input=false >> /dev/null && terraform -chdir=${{ inputs.root }} show "tf_plan_${{ github.sha }}"
 
 
     - name: Save Terraform Plan
