@@ -101,6 +101,7 @@ The `authorizers` attribute map contains:
 * `function_arn` - the ARN of the Lambda function (omit for external account authorizers)
 * `function_invoke_arn` - the special invocation ARN of the Lambda function
 * `authorizer_result_ttl_in_seconds` - (optional, default to "900") ttl in seconds for an authorizer result.
+* `identity_source` - (optional, default "method.request.header.X-Auth-Token") identity source for an authorizer lambda.
 * `authorizer_type` - (optional, default "TOKEN") type of authorizer determining the payload, other possible values: "REQUEST" and "COGNITO_USER_POOLS".
 
 The `lambda` attribute map contains:
@@ -115,7 +116,6 @@ A `route` mapping can contain:
 * `proxy_url` - if type is "HTTP_PROXY", proxy requests to this endpoint (otherwise this argument is ignored)
 * `lambda_key` - if type is "AWS_PROXY", send requests to the lambda assigned to this arbitrary key in the `lambdas` argument (otherwise argument is ignored).
 * `authorizer_key` - (optional) if type is "AWS_PROXY", add this authorizer to the route (otherwise argument is ignored).
-* `authorizer_arn` - (optional) if type is "AWS_PROXY", add this authorizer from another AWS account to the route (otherwise argument is ignored).
 * `headers` - (optional) an optional string-mapping of header names to static values. (example: "Host=example.com;Accept=application/json")
 
 
