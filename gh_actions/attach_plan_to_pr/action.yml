@@ -75,8 +75,7 @@ runs:
       id: plan
       shell: bash
       run: |
-        terraform -chdir=${{ inputs.root }} plan -out "tf_plan_${{ github.sha }}" -no-color -input=false >> /dev/null && terraform -chdir=${{ inputs.root }} show "tf_plan_${{ github.sha }}"
-
+        terraform -chdir=${{ inputs.root }} plan -out "tf_plan_${{ github.sha }}" -input=false >> /dev/null && terraform -chdir=${{ inputs.root }} show -no-color "tf_plan_${{ github.sha }}"
 
     - name: Save Terraform Plan
       if: inputs.plan_artifact_name != '' && steps.plan.outcome == 'success'
@@ -88,33 +87,34 @@ runs:
         retention-days: 7
 
     - name: Dump Plan Text to File
-      if: inputs.text_artifact_name != '' && steps.plan.outcome == 'success'
+      if: steps.plan.outcome == 'success'
       shell: bash
       run: |
-        terraform -chdir=${{ inputs.root }} plan -out "tf_plan_${{ github.sha }}" -no-color > ${{ inputs.text_artifact_name }}
+        terraform -chdir=${{ inputs.root }} show -no-color "tf_plan_${{ github.sha }}" > "tf_plan_${{ github.sha }}.txt"
 
     - name: Save Terraform Plan Text
       if: inputs.text_artifact_name != '' && steps.plan.outcome == 'success'
       uses: actions/upload-artifact@v3
       with:
         name: ${{ inputs.text_artifact_name }}
-        path: ${{ inputs.text_artifact_name }}
+        path: "tf_plan_${{ github.sha }}.txt"
         if-no-files-found: error
         retention-days: 7
 
     - uses: actions/github-script@v7
       if: steps.plan.outcome == 'success' && inputs.add_plan_to_pr == 'true' && github.event_name == 'pull_request' && !contains(steps.plan.outputs.stdout, inputs.ignore_plan_phrase)
       continue-on-error: true
-      env:
-        PLAN: "${{ steps.plan.outputs.stdout }}"
       with:
         github-token: ${{ github.token }}
         script: |
+          const fs = require('fs');
+
+          const plan = fs.readFileSync("tf_plan_${{ github.sha }}.txt");
           const output = `#### Terraform Plan 📖 \`${{ steps.plan.outcome }}\`
           <details><summary>Show Plan</summary>
 
           \`\`\`terraform\n
-          ${process.env.PLAN}
+          ${plan}
           \`\`\`
 
           </details>
