@@ -44,6 +44,9 @@ locals {
     aws_api_gateway_integration.rest_api_route_integration,
     aws_api_gateway_authorizer.authorizer,
   ]))
+  authorizer_roles = {
+    for key, value in var.var.authorizers : key => (lookup(value, "function_arn", "") != "" ? aws_iam_role.invocation_role.arn : null)
+  }
 }
 
 data "aws_region" "current" {}
@@ -118,7 +121,7 @@ resource "aws_api_gateway_authorizer" "authorizer" {
   rest_api_id                      = aws_api_gateway_rest_api.rest_api.id
   type                             = lookup(each.value, "authorizer_type", "TOKEN")
   authorizer_uri                   = each.value["function_invoke_arn"]
-  authorizer_credentials           = (lookup(each.value, "function_arn", "") != "" ? aws_iam_role.invocation_role.arn : null)
+  authorizer_credentials           = local.authorizer_roles[each.key]
   identity_source                  = lookup(each.value, "identity_source", "method.request.header.X-Auth-Token")
   authorizer_result_ttl_in_seconds = parseint(lookup(each.value, "authorizer_result_ttl_in_seconds", "900"), 10)
 
