@@ -21,18 +21,23 @@ module "api_gateway" {
   tags                  = {}
   log_retention_in_days = 0
 
-  # Specify lambdas by (arbitrary) key and function-name for later reference via a route.
-  # The function ARN and invocation ARNs also have to be specified.
+  # Specify lambdas by (arbitrary) key for later reference via a route.
+  # The function ARN and invocation ARNs also must be specified.
   lambdas = {
-    "authorizer_lambda" = {
-      "function_name"       = module.lambda_authorizer.lambda_function_name
-      "function_arn"        = module.lambda_authorizer.lambda_function_arn
-      "function_invoke_arn" = module.lambda_authorizer.lambda_function_invoke_arn
-    }
     "rest_api_handler" = {
-      "function_name"       = module.lambda_rest_api.lambda_function_name
       "function_arn"        = module.lambda_rest_api.lambda_function_arn
       "function_invoke_arn" = module.lambda_rest_api.lambda_function_invoke_arn
+    }
+  }
+
+  # Similar to the lambdas map above, specify authorizers by (arbitrary) key for
+  # later reference via a route. The function ARN and invocation ARNs also must
+  # be specified if the lambda belongs to the same AWS account. See below for
+  # other options.
+  authorizers = {
+    "authorizer_lambda" = {
+      "function_arn"        = module.lambda_authorizer.lambda_function_arn
+      "function_invoke_arn" = module.lambda_authorizer.lambda_function_invoke_arn
     }
   }
 
@@ -89,19 +94,24 @@ The following arguments are supported:
 * `routes` - A mapping of path prefixes to `route` mappings to define the behavior at that path prefix (The leading '/' is cosmetic. Paths can contain up to five levels deep.).
 * `tags` - (optional) A mapping of tags to be applied to all resources.
 * `log_retention_in_days` - (optional, default 0) - number of days to retain logs. 0 (the default) means to never expire logs. Other valid values are: 1, 3, 5, 7, 14, 30, 60, 90, 120, 150, 180, 365, 400, 545, 731, 1827, 3653.
+* `authorizers` - A mapping of string keys to an attribute mapping. The keys are arbitrary for reference in `route` entries.
 * `lambdas` - A mapping of string keys to an attribute mapping. The keys are arbitrary for reference in `route` entries.
 * `set_cloudwatch_role` - A boolean indicating if the API Gateway Cloudwatch role should be set
 * `apigateway_cloudwatch_role_arn` - (optional) If `set_cloudwatch_role` is true, then specifying this will set the specific role. If not provided, a role will be created.
 * `redeployment_hash` - (optional) - Entropy variable to trigger a deployment to be made. If omitted, this module will do its best to detect applicable changes.
 
-The `lambda` attribute map contains:
+The `authorizers` attribute map contains:
 
-* `function_name` - the function name of the lambda to be called
-* `function_arn` - the ARN of the Lambda function
+* `function_arn` - the ARN of the Lambda function (omit for external account authorizers)
 * `function_invoke_arn` - the special invocation ARN of the Lambda function
 * `authorizer_result_ttl_in_seconds` - (optional, default to "900") ttl in seconds for an authorizer result.
 * `identity_source` - (optional, default "method.request.header.X-Auth-Token") identity source for an authorizer lambda.
 * `authorizer_type` - (optional, default "TOKEN") type of authorizer determining the payload, other possible values: "REQUEST" and "COGNITO_USER_POOLS".
+
+The `lambda` attribute map contains:
+
+* `function_arn` - the ARN of the Lambda function
+* `function_invoke_arn` - the special invocation ARN of the Lambda function
 
 A `route` mapping can contain:
 

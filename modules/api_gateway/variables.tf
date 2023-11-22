@@ -19,7 +19,7 @@ variable "stage_name" {
 }
 
 variable "redeployment_hash" {
-  type = string
+  type    = string
   default = ""
 }
 
@@ -42,9 +42,15 @@ variable "endpoint_type" {
   }
 }
 
+variable "authorizers" {
+  type    = map(map(string))
+  default = {}
+}
+
 variable "lambdas" {
   type = map(map(string))
 }
+
 
 variable "routes" {
   type = map(map(string))

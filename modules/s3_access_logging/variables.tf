@@ -1,6 +1,6 @@
 variable "log_sources" {
   type = set(object({
-    bucket_name = string,
+    bucket_name     = string,
     expiration_days = optional(number, 400)
   }))
   description = "list of bucket names to enable logging for"

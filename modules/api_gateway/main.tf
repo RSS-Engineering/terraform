@@ -1,17 +1,9 @@
 locals {
   account_id = data.aws_caller_identity.current.account_id
-  authorizer_list = [
-    for key, value in var.routes :
-    value["authorizer_key"] if lookup(value, "authorizer_key", "") != ""
-  ]
   integration_lambda_list = [
     for key, value in var.routes :
     value["lambda_key"] if lookup(value, "lambda_key", "") != ""
   ]
-  authorizer_keys = {
-    for k in distinct(local.authorizer_list) :
-    k => ""
-  }
   integration_keys = {
     for k in distinct(local.integration_lambda_list) :
     k => ""
@@ -25,7 +17,7 @@ locals {
       type           = lookup(value, "type", "AWS_PROXY")
       path_params    = regexall("(?:{)([A-Za-z][_A-Za-z0-9]+)(?:[+]?})", key)
       path_part      = reverse(split("/", key))[0]
-      parent_path    = length(split("/", key)) == 1 ? "" : substr(key, 1, length(key)-(length(reverse(split("/", key))[0])) - 2)
+      parent_path    = length(split("/", key)) == 1 ? "" : substr(key, 1, length(key) - (length(reverse(split("/", key))[0])) - 2)
       headers        = lookup(value, "headers", "")
     }
   }
@@ -52,6 +44,9 @@ locals {
     aws_api_gateway_integration.rest_api_route_integration,
     aws_api_gateway_authorizer.authorizer,
   ]))
+  authorizer_roles = {
+    for key, value in var.var.authorizers : key => (lookup(value, "function_arn", "") != "" ? aws_iam_role.invocation_role.arn : null)
+  }
 }
 
 data "aws_region" "current" {}
@@ -94,7 +89,7 @@ EOF
 }
 
 resource "aws_iam_role_policy" "invocation_policy" {
-  count = length(local.authorizer_list) > 0 ? 1 : 0
+  count = length(var.authorizers) + length(var.lambdas) > 0 ? 1 : 0
 
   name = "${var.name}-apigateway-authorization-invocation-policy"
   role = aws_iam_role.invocation_role.id
@@ -105,26 +100,34 @@ resource "aws_iam_role_policy" "invocation_policy" {
       {
         "Action" = "lambda:InvokeFunction",
         "Effect" = "Allow",
-        "Resource" = distinct([
-          # use wildcard for versioned lambdas to avoid
-          # revoking permissions on previous version during deploy
-          for lambda_key, value in var.lambdas : replace(value.function_arn, "/:\\d+$/", ":*")
-        ])
+        "Resource" = [for e in distinct(
+          concat([
+            # use wildcard for versioned lambdas to avoid
+            # revoking permissions on previous version during deploy
+            for key, value in var.authorizers : replace(value.function_arn, "/:\\d+$/", ":*") if lookup(value, "function_arn", "") != ""
+            ], [
+            for key, value in var.lambdas : replace(value.function_arn, "/:\\d+$/", ":*")
+          ])
+        ): e]
       }
     ]
   })
 }
 
 resource "aws_api_gateway_authorizer" "authorizer" {
-  for_each = local.authorizer_keys
+  for_each = var.authorizers
 
-  name        = "api-authorizer-${each.key}"
-  rest_api_id = aws_api_gateway_rest_api.rest_api.id
-  type        = lookup(var.lambdas[each.key], "authorizer_type", "TOKEN")
-  authorizer_uri                   = var.lambdas[each.key]["function_invoke_arn"]
-  authorizer_credentials           = aws_iam_role.invocation_role.arn
-  identity_source                  = lookup(var.lambdas[each.key], "identity_source", "method.request.header.X-Auth-Token")
-  authorizer_result_ttl_in_seconds = parseint(lookup(var.lambdas[each.key], "authorizer_result_ttl_in_seconds", "900"), 10)
+  name                             = "api-authorizer-${each.key}"
+  rest_api_id                      = aws_api_gateway_rest_api.rest_api.id
+  type                             = lookup(each.value, "authorizer_type", "TOKEN")
+  authorizer_uri                   = each.value["function_invoke_arn"]
+  authorizer_credentials           = local.authorizer_roles[each.key]
+  identity_source                  = lookup(each.value, "identity_source", "method.request.header.X-Auth-Token")
+  authorizer_result_ttl_in_seconds = parseint(lookup(each.value, "authorizer_result_ttl_in_seconds", "900"), 10)
+
+  lifecycle {
+    prevent_destroy = true
+  }
 }
 # END
 
@@ -183,8 +186,8 @@ resource "aws_api_gateway_resource" "rest_api_route_5d_resource" {
 resource "aws_api_gateway_method" "rest_api_route_method" {
   for_each = local.routes
 
-  rest_api_id   = aws_api_gateway_rest_api.rest_api.id
-  resource_id   = each.key == "" ? aws_api_gateway_rest_api.rest_api.root_resource_id : local.route_resources[tostring(length(split("/", each.key)))][each.key]
+  rest_api_id = aws_api_gateway_rest_api.rest_api.id
+  resource_id = each.key == "" ? aws_api_gateway_rest_api.rest_api.root_resource_id : local.route_resources[tostring(length(split("/", each.key)))][each.key]
 
   http_method   = each.value["method"]
   authorization = each.value["authorizer_key"] == "" ? "NONE" : "CUSTOM"
@@ -215,7 +218,7 @@ resource "aws_api_gateway_integration" "rest_api_route_integration" {
   cache_key_parameters = []
   request_parameters = merge({
     for name in each.value["path_params"] : "integration.request.path.${name[0]}" => "method.request.path.${name[0]}"
-  }, {
+    }, {
     for header_pair in split(";", each.value["headers"]) : "integration.request.header.${split("=", header_pair)[0]}" => "'${split("=", header_pair)[1]}'" if length(regexall(".*=.*", header_pair)) > 0
   })
   request_templates = {}
