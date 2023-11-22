@@ -21,19 +21,23 @@ module "api_gateway" {
   tags                  = {}
   log_retention_in_days = 0
 
-  authorizers = {
-    "authorizer_lambda" = {
-      "function_arn"        = module.lambda_authorizer.lambda_function_arn
-      "function_invoke_arn" = module.lambda_authorizer.lambda_function_invoke_arn
-    }
-  }
-
-  # Specify lambdas by (arbitrary) key and function-name for later reference via a route.
-  # The function ARN and invocation ARNs also have to be specified.
+  # Specify lambdas by (arbitrary) key for later reference via a route.
+  # The function ARN and invocation ARNs also must be specified.
   lambdas = {
     "rest_api_handler" = {
       "function_arn"        = module.lambda_rest_api.lambda_function_arn
       "function_invoke_arn" = module.lambda_rest_api.lambda_function_invoke_arn
+    }
+  }
+
+  # Similar to the lambdas map above, specify authorizers by (arbitrary) key for
+  # later reference via a route. The function ARN and invocation ARNs also must
+  # be specified if the lambda belongs to the same AWS account. See below for
+  # other options.
+  authorizers = {
+    "authorizer_lambda" = {
+      "function_arn"        = module.lambda_authorizer.lambda_function_arn
+      "function_invoke_arn" = module.lambda_authorizer.lambda_function_invoke_arn
     }
   }
 
