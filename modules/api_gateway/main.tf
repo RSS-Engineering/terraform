@@ -1,5 +1,4 @@
 locals {
-  account_id = data.aws_caller_identity.current.account_id
   routes = {
     for key, value in var.routes : trimprefix(key, "/") => {
       method         = lookup(value, "method", "ANY")
@@ -42,7 +41,6 @@ locals {
 }
 
 data "aws_region" "current" {}
-data "aws_caller_identity" "current" {}
 
 data "aws_iam_policy_document" "assume_role" {
   statement {
