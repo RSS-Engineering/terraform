@@ -45,7 +45,7 @@ locals {
     aws_api_gateway_authorizer.authorizer,
   ]))
   authorizer_roles = {
-    for key, value in var.var.authorizers : key => (lookup(value, "function_arn", "") != "" ? aws_iam_role.invocation_role.arn : null)
+    for key, value in var.authorizers : key => (lookup(value, "function_arn", "") != "" ? aws_iam_role.invocation_role.arn : null)
   }
 }
 
@@ -108,7 +108,7 @@ resource "aws_iam_role_policy" "invocation_policy" {
             ], [
             for key, value in var.lambdas : replace(value.function_arn, "/:\\d+$/", ":*")
           ])
-        ): e]
+        ) : e]
       }
     ]
   })
