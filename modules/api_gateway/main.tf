@@ -4,10 +4,6 @@ locals {
     for key, value in var.routes :
     value["lambda_key"] if lookup(value, "lambda_key", "") != ""
   ]
-  integration_keys = {
-    for k in distinct(local.integration_lambda_list) :
-    k => ""
-  }
   routes = {
     for key, value in var.routes : trimprefix(key, "/") => {
       method         = lookup(value, "method", "ANY")
@@ -108,7 +104,7 @@ resource "aws_iam_role_policy" "invocation_policy" {
             ], [
             for key, value in var.lambdas : replace(value.function_arn, "/:\\d+$/", ":*")
           ])
-        ): e]
+        ) : e]
       }
     ]
   })
