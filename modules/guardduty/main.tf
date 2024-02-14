@@ -17,12 +17,26 @@ resource "aws_guardduty_detector" "detector" {
         }
       }
     }
-    # rds and lambda protections are not yet manageable by terraform
-    # but they are enabled by default when the detector is first created
   }
 }
 
-data "aws_region" "current" {}
+resource "aws_guardduty_detector_feature" "lambda_network_logs" {
+  detector_id = aws_guardduty_detector.detector.id
+  name        = "LAMBDA_NETWORK_LOGS"
+  status      = "ENABLED"
+}
+
+resource "aws_guardduty_detector_feature" "rds_login_events" {
+  detector_id = aws_guardduty_detector.detector.id
+  name        = "RDS_LOGIN_EVENTS"
+  status      = "ENABLED"
+}
+
+resource "aws_guardduty_detector_feature" "s3_data_events" {
+  detector_id = aws_guardduty_detector.detector.id
+  name        = "S3_DATA_EVENTS"
+  status      = "ENABLED"
+}
 
 resource "aws_guardduty_invite_accepter" "invitee" {
   count             = var.instance == null ? 0 : 1
