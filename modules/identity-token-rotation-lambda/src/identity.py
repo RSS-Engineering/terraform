@@ -1,16 +1,15 @@
+import os
+
 import arrow
 import requests
-from aws_lambda_powertools.utilities import parameters
+from aws_lambda_powertools import Logger
 
-from common import constants
-from common.logger import setup_logging
-
-logger = setup_logging()
+logger = Logger()
 
 
 class RackspaceIdentity:
     def __init__(self, username, password, domain=None):
-        self.url = _get_base_url_for_stage()
+        self.url = _get_base_url()
         self.username = username
         self.password = password
         self.domain = domain
@@ -31,9 +30,7 @@ class RackspaceIdentity:
         if self.domain:
             body["auth"]["RAX-AUTH:domain"] = {"name": self.domain}
 
-        resp = requests.post(
-            f"{self.url}/v2.0/tokens", json=body, timeout=constants.DEFAULT_TIMEOUT
-        )
+        resp = requests.post(f"{self.url}/v2.0/tokens", json=body)
 
         if not resp.ok:
             logger.error(f"Identity authentication failed - {resp.status_code}")
@@ -45,6 +42,7 @@ class RackspaceIdentity:
         self.expires_at = (
                 arrow.get(auth["expires"]).int_timestamp - self.expiration_padding
         )
+
         logger.info("Refreshed Identity Token...")
         return self.token
 
@@ -61,7 +59,7 @@ class RackspaceIdentity:
 
 class RackImpersonationIdentity:
     def __init__(self, username, password):
-        self.url = _get_base_url_for_stage()
+        self.url = _get_base_url()
         self.username = username
         self.password = password
         self._token = None
@@ -79,9 +77,7 @@ class RackImpersonationIdentity:
             }
         }
 
-        resp = requests.post(
-            f"{self.url}/v2.0/tokens", json=body, timeout=constants.DEFAULT_TIMEOUT
-        )
+        resp = requests.post(f"{self.url}/v2.0/tokens", json=body)
 
         if not resp.ok:
             logger.error(f"Identity authentication failed - {resp.status_code}")
@@ -93,6 +89,7 @@ class RackImpersonationIdentity:
         self.expires_at = (
                 arrow.get(auth["expires"]).int_timestamp - self.expiration_padding
         )
+
         logger.info("Refreshed Identity Token...")
         return self.token
 
@@ -109,12 +106,7 @@ class RackImpersonationIdentity:
     def _get_admin_user(self, tenant_id):
         headers = {"x-auth-token": self.token}
         params = {"tenant_id": tenant_id, "admin_only": True}
-        resp = requests.get(
-            f"{self.url}/v2.0/users",
-            headers=headers,
-            params=params,
-            timeout=constants.DEFAULT_TIMEOUT,
-        )
+        resp = requests.get(f"{self.url}/v2.0/users", headers=headers, params=params)
 
         if not resp.ok:
             logger.error(
@@ -135,10 +127,7 @@ class RackImpersonationIdentity:
             }
         }
         resp = requests.post(
-            f"{self.url}/v2.0/RAX-AUTH/impersonation-tokens",
-            headers=headers,
-            json=body,
-            timeout=constants.DEFAULT_TIMEOUT,
+            f"{self.url}/v2.0/RAX-AUTH/impersonation-tokens", headers=headers, json=body
         )
 
         if not resp.ok:
@@ -150,30 +139,14 @@ class RackImpersonationIdentity:
         return resp.json()["access"]["token"]["id"]
 
 
-def _get_base_url_for_stage():
-    if constants.USE_JANUS_PROXY:
+def _get_base_url():
+    if os.environ.get("USE_JANUS_PROXY", False):
         return "https://proxy.api.manage.rackspace.com/identity"
     return "https://identity-internal.api.rackspacecloud.com"
 
 
 def validate(token):
-    url = _get_base_url_for_stage()
-    resp = requests.get(
-        f"{url}/v2.0/tokens/{token}",
-        headers={"x-auth-token": token},
-        timeout=constants.DEFAULT_TIMEOUT,
-    )
+    url = _get_base_url()
+    resp = requests.get(f"{url}/v2.0/tokens/{token}", headers={"x-auth-token": token})
     resp.raise_for_status()
     return resp.json()
-
-
-def racker_identity() -> RackspaceIdentity:
-    secret = parameters.get_secret(
-        name=f"{constants.STAGE}/observability/service-account", transform="json"
-    )
-    identity = RackspaceIdentity(
-        secret["username"],  # type:ignore
-        secret["password"],  # type:ignore
-        domain="Rackspace",
-    )
-    return identity

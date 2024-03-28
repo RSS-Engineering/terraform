@@ -5,10 +5,9 @@ import json
 import os
 
 import boto3
+import identity
 from aws_lambda_powertools import Logger
 from aws_lambda_powertools.tracing import Tracer
-
-import identity
 
 logger = Logger()
 trace = Tracer()

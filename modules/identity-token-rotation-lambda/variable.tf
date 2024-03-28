@@ -18,5 +18,5 @@ variable "service_account_secret_arn" {
 }
 variable "use_janus_proxy" {
   type = bool
-  default = false
+  default = true
 }
