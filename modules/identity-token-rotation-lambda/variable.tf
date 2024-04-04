@@ -20,3 +20,7 @@ variable "use_janus_proxy" {
   type = bool
   default = true
 }
+variable "rotation_schedule_expression" {
+  type = string
+  default = "rate(4 hours)"
+}

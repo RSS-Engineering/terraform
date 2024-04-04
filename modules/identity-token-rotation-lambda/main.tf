@@ -8,17 +8,6 @@ resource "aws_secretsmanager_secret" "token" {
   recovery_window_in_days = 0
 }
 
-resource "aws_secretsmanager_secret_version" "token" {
-  secret_id     = aws_secretsmanager_secret.token.id
-  secret_string = "none"
-  # Changes to the password in Terraform should not trigger a change in state to Secrets Manager
-  lifecycle {
-    ignore_changes = [
-      secret_string
-    ]
-  }
-}
-
 module "lambda_layer" {
   source                   = "terraform-aws-modules/lambda/aws"
   version                  = "~> 2.0"
@@ -101,6 +90,6 @@ resource "aws_secretsmanager_secret_rotation" "this" {
   secret_id           = aws_secretsmanager_secret.token.id
   rotation_lambda_arn = module.lambda_function.lambda_function_arn
   rotation_rules {
-    schedule_expression = "rate(5 hours)"
+    schedule_expression = var.rotation_schedule_expression
   }
 }
