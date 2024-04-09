@@ -62,3 +62,7 @@ The [s3_access_logging](modules/s3_access_logging.md) module handles the logic f
 ### [security_hub](modules/security_hub.md)/[guardduty](modules/guardduty.md)
 
 The [security_hub](modules/security_hub.md) and [guardduty](modules/guardduty.md) modules provision best-practice security monitoring in an account, which can be used for notifications on potential security incidents. These should be provisioned together, and should be provisioned in all active regions in an account - not just the ones which have resources.
+
+### [identity_token_rotation](modules/identity_token_rotation.md)
+
+The [identity_token_rotation](modules/identity_token_rotation.md) module will generate and rotate the identity auth token as an AWS secret.
