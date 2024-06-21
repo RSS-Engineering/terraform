@@ -17,6 +17,8 @@ module "lambda_layer" {
   compatible_runtimes      = [var.lambda_runtime]
   runtime                  = var.lambda_runtime
   recreate_missing_package = false
+  build_in_docker          = var.build_in_docker
+  docker_image             = "python:3.8-alpine"
   source_path = [
     {
       path             = path.module,
@@ -75,8 +77,6 @@ module "lambda_function" {
       ],
       resources = [var.service_account_secret_arn]
     }
-    build_in_docker = var.build_in_docker
-    docker_file     = "${path.module}/Dockerfile"
   }
 }
 
