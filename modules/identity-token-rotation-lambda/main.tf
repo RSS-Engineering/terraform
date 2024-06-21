@@ -75,6 +75,8 @@ module "lambda_function" {
       ],
       resources = [var.service_account_secret_arn]
     }
+    build_in_docker = var.build_in_docker
+    docker_file     = "${path.module}/Dockerfile"
   }
 }
 
