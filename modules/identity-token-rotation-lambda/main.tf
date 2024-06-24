@@ -18,7 +18,8 @@ module "lambda_layer" {
   runtime                  = var.lambda_runtime
   recreate_missing_package = false
   build_in_docker          = var.build_in_docker
-  docker_image             = "python:3.8-alpine"
+//  docker_image             = "public.ecr.aws/lambda/python:3.8"
+
   source_path = [
     {
       path             = path.module,
