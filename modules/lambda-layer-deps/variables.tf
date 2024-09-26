@@ -54,3 +54,9 @@ variable "pre_package_commands" {
   type        = list(string)
   default     = []
 }
+
+variable "docker_image" {
+  description = "Docker image to be passed for running the image with dependencies"
+  type        = string
+  default     = null
+}

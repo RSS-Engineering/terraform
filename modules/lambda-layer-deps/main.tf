@@ -15,5 +15,6 @@ data "external" "build" {
     runtime              = var.runtime
     dependency_lock_file = var.dependency_lock_file_path
     pre_package_commands = jsonencode(var.pre_package_commands)
+    docker_image         = var.docker_image
   }
 }
