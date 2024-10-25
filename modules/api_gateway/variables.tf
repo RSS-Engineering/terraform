@@ -67,3 +67,8 @@ variable "apigateway_cloudwatch_role_arn" {
 
   default = ""
 }
+
+variable "binary_media_types" {
+  type    = list()
+  default = []
+}

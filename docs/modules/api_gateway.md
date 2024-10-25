@@ -99,6 +99,7 @@ The following arguments are supported:
 * `set_cloudwatch_role` - A boolean indicating if the API Gateway Cloudwatch role should be set
 * `apigateway_cloudwatch_role_arn` - (optional) If `set_cloudwatch_role` is true, then specifying this will set the specific role. If not provided, a role will be created.
 * `redeployment_hash` - (optional) - Entropy variable to trigger a deployment to be made. If omitted, this module will do its best to detect applicable changes.
+* `binary_media_types` - (optional) - A list of binary media types supported by the Rest API. By default, the Rest API supports only UTF-8-encoded text payloads.
 
 The `authorizers` attribute map contains:
 
