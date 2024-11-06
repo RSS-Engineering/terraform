@@ -79,7 +79,7 @@ runs:
 
     - name: Save Terraform Plan
       if: inputs.plan_artifact_name != '' && steps.plan.outcome == 'success'
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: ${{ inputs.plan_artifact_name }}
         path: ${{ inputs.root }}/tf_plan_${{ github.sha }}
@@ -94,7 +94,7 @@ runs:
 
     - name: Save Terraform Plan Text
       if: inputs.text_artifact_name != '' && steps.plan.outcome == 'success'
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: ${{ inputs.text_artifact_name }}
         path: "tf_plan_${{ github.sha }}.txt"
