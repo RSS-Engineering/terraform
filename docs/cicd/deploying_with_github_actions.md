@@ -60,7 +60,7 @@ jobs:
 
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
       # This step is only necessary to switch between multiple environments.
       - name: Build Credentials
@@ -68,13 +68,14 @@ jobs:
         run: |
           if [ "$ENV" = "staging" ]
           then
-              echo "::set-output name=access_key::$STAGING_ACCESS_KEY"
-              echo "::set-output name=secret_key::$STAGING_SECRET_KEY"
-              echo "::set-output name=env::$ENV"
+              echo "access_key=$STAGING_ACCESS_KEY" >> $GITHUB_OUTPUT
+              echo "secret_key=$STAGING_SECRET_KEY" >> $GITHUB_OUTPUT
+              echo "env=$ENV" >> $GITHUB_OUTPUT
+
           else
-              echo "::set-output name=access_key::$PROD_ACCESS_KEY"
-              echo "::set-output name=secret_key::$PROD_SECRET_KEY"
-              echo "::set-output name=env::prod"
+              echo "access_key=$PROD_ACCESS_KEY" >> $GITHUB_OUTPUT
+              echo "secret_key=$PROD_SECRET_KEY" >> $GITHUB_OUTPUT
+              echo "env=prod" >> $GITHUB_OUTPUT
           fi
         env:
           ENV: ${{ github.event.inputs.env || 'prod' }}
