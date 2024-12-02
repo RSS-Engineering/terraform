@@ -1,5 +1,4 @@
 provider "aws" {
-  profile = "zamboni-development"
   region  = "us-west-1"
 }
 
