@@ -54,3 +54,9 @@ variable "pre_package_commands" {
   type        = list(string)
   default     = []
 }
+
+variable "use_ecr_image" {
+  description = "By default this module will use lambci docker image, if you would like to use ECR lambda images set this option to true (recommended)"
+  type        = bool
+  default     = false
+}
