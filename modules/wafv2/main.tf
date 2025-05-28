@@ -191,3 +191,26 @@ resource "aws_cloudwatch_log_group" "web_acl_log" {
   name              = "aws-waf-logs-${var.stage}_${var.region}_${var.service_name}"
   count             = var.enabled
 }
+
+# Log web ACL traffic logs.
+resource "aws_wafv2_web_acl_logging_configuration" "web_acl_logging_config" {
+  count                   = var.enabled
+  log_destination_configs = [aws_cloudwatch_log_group.web_acl_log[count.index].arn]
+  resource_arn            = aws_wafv2_web_acl.web_acl[count.index].arn
+
+  redacted_fields {
+    single_header {
+      name = "authorization"
+    }
+  }
+  redacted_fields {
+    single_header {
+      name = "x-auth-token"
+    }
+  }
+  redacted_fields {
+    single_header {
+      name = "cookie"
+    }
+  }
+}
