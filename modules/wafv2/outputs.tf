@@ -5,5 +5,5 @@ output "web_acl_arn" {
 
 output "cloudwatch_log_group_arn" {
   description = "The ARN of the CloudWatch Log Group for WAFv2 logs"
-  value       = var.enabled == 1 ? one(aws_cloudwatch_log_group.waf_log_group[*].arn) : ""
+  value       = var.enabled == 1 ? one(aws_cloudwatch_log_group.web_acl_log[*].arn) : ""
 }
