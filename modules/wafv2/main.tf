@@ -6,15 +6,6 @@ data "aws_caller_identity" "current" {}
 
 data "aws_region" "current" {}
 
-# IP Set for Throttling
-resource "aws_wafv2_ip_set" "iplist_throttle" {
-  for_each           = var.enabled == 1 ? { "enabled" = true } : {}
-  name               = "${var.stage}_${var.region}_${var.service_name}_iplist_throttle"
-  scope              = "REGIONAL"
-  ip_address_version = "IPV4"
-  addresses          = [var.iplist_throttle_CIDR_0]
-}
-
 # Web ACL
 resource "aws_wafv2_web_acl" "web_acl" {
   name  = "${var.stage}_${var.region}_${var.service_name}_web_acl"
@@ -151,36 +142,9 @@ resource "aws_wafv2_web_acl" "web_acl" {
    }
   }
 
-  rule {
-    name     = "${var.stage}_${var.region}_${var.service_name}_ip_throttle"
-    priority = 30
-
-    action {
-      block {}
-    }
-
-    statement {
-      rate_based_statement {
-        limit              = var.rate_ip_throttle_limit
-        aggregate_key_type = "IP"
-        scope_down_statement {
-          ip_set_reference_statement {
-            arn = aws_wafv2_ip_set.iplist_throttle["enabled"].arn
-          }
-        }
-      }
-    }
-
-    visibility_config {
-      cloudwatch_metrics_enabled = true
-      metric_name                = "${var.stage}_${var.region}_${var.service_name}_ipthrottle_rule"
-      sampled_requests_enabled   = true
-    }
-  }
-
   visibility_config {
     cloudwatch_metrics_enabled = true
-    metric_name                = "${var.stage}_${var.region}_${var.service_name}_webacl"
+    metric_name                = "${replace(var.stage, "/[^a-zA-Z0-9]/", "")}${replace(var.region, "/[^a-zA-Z0-9]/", "")}${replace(var.service_name, "/[^a-zA-Z0-9]/", "")}webacl"
     sampled_requests_enabled   = true
   }
 }
