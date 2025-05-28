@@ -6,16 +6,6 @@ data "aws_caller_identity" "current" {}
 
 data "aws_region" "current" {}
 
-# IP Set for Throttling
-resource "aws_wafv2_ip_set" "iplist_throttle" {
-  name               = "${var.stage}_${var.region}_${var.service_name}_iplist_throttle"
-  scope              = "REGIONAL"
-  ip_address_version = "IPV4"
-  addresses          = [var.iplist_throttle_CIDR_0]
-  count              = var.enabled
-}
-
-
 # Web ACL
 resource "aws_wafv2_web_acl" "web_acl" {
   name  = "${var.stage}_${var.region}_${var.service_name}_web_acl"
