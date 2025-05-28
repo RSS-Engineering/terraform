@@ -2,10 +2,13 @@ provider "aws" {
   region = var.region
 }
 
+data "aws_caller_identity" "current" {}
+
+data "aws_region" "current" {}
 
 # IP Set for Throttling
 resource "aws_wafv2_ip_set" "iplist_throttle" {
-  name               = "${var.stage}_${var.region}_${var.api_name}_iplist_throttle"
+  name               = "${var.stage}_${var.region}_${var.service_name}_iplist_throttle"
   scope              = "REGIONAL"
   ip_address_version = "IPV4"
   addresses          = [var.iplist_throttle_CIDR_0]
@@ -15,12 +18,14 @@ resource "aws_wafv2_ip_set" "iplist_throttle" {
 
 # Web ACL
 resource "aws_wafv2_web_acl" "web_acl" {
-  name  = "${var.stage}_${var.region}_${var.api_name}_web_acl"
+  name  = "${var.stage}_${var.region}_${var.service_name}_web_acl"
   scope = "REGIONAL"
   count = var.enabled
+
   default_action {
     allow {}
   }
+
   rule {
     name     = "AWSManagedRulesCommonRuleSet"
     priority = 0
@@ -44,7 +49,7 @@ resource "aws_wafv2_web_acl" "web_acl" {
   }
 
   rule {
-   name     = "${var.stage}_${var.region}_${var.api_name}_sql_injection"
+   name     = "${var.stage}_${var.region}_${var.service_name}_sql_injection_rule"
    priority = 10
    action {
      block {}
@@ -90,13 +95,13 @@ resource "aws_wafv2_web_acl" "web_acl" {
 
    visibility_config {
      cloudwatch_metrics_enabled = false
-     metric_name                = "${var.stage}_${var.region}_${var.api_name}_sql_injection"
+     metric_name                = "${var.stage}_${var.region}_${var.service_name}_sql_injection_rule"
      sampled_requests_enabled   = false
    }
   }
 
   rule {
-   name     = "${var.stage}_${var.region}_${var.api_name}_xss"
+   name     = "${var.stage}_${var.region}_${var.service_name}_xss_rule"
    priority = 20
    action {
      block {}
@@ -142,14 +147,14 @@ resource "aws_wafv2_web_acl" "web_acl" {
 
    visibility_config {
      cloudwatch_metrics_enabled = false
-     metric_name                = "${var.stage}_${var.region}_${var.api_name}_xss"
+     metric_name                = "${var.stage}_${var.region}_${var.service_name}_xss_rule"
      sampled_requests_enabled   = false
    }
   }
 
   visibility_config {
     cloudwatch_metrics_enabled = true
-    metric_name                = "${replace(var.stage, "/[^a-zA-Z0-9]/", "")}${replace(var.region, "/[^a-zA-Z0-9]/", "")}${replace(var.api_name, "/[^a-zA-Z0-9]/", "")}webacl"
+    metric_name                = "${replace(var.stage, "/[^a-zA-Z0-9]/", "")}${replace(var.region, "/[^a-zA-Z0-9]/", "")}${replace(var.service_name, "/[^a-zA-Z0-9]/", "")}webacl"
     sampled_requests_enabled   = true
   }
 }
@@ -161,15 +166,10 @@ resource "aws_wafv2_web_acl_association" "web_acl_association" {
   count        = var.enabled
 }
 
-data "aws_caller_identity" "current" {
-}
-
-data "aws_region" "current" {}
-
 resource "aws_cloudwatch_log_resource_policy" "web_acl_resource_policy" {
   count           = var.enabled
   policy_document = data.aws_iam_policy_document.web_acl_policy_document[count.index].json
-  policy_name     = "${var.stage}_${var.region}_${var.api_name}_webacl_resource_policy"
+  policy_name     = "${var.stage}_${var.region}_${var.service_name}_webacl_resource_policy"
 }
 
 data "aws_iam_policy_document" "web_acl_policy_document" {
@@ -198,6 +198,6 @@ data "aws_iam_policy_document" "web_acl_policy_document" {
 
 # CloudWatch Log Group for WAFv2 Logging
 resource "aws_cloudwatch_log_group" "web_acl_log" {
-  name              = "${var.stage}_${var.region}_${var.api_name}_waf_logs"
+  name              = "${var.stage}_${var.region}_${var.service_name}_waf_logs"
   count             = var.enabled
 }
