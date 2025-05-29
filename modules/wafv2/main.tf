@@ -84,9 +84,9 @@ resource "aws_wafv2_web_acl" "web_acl" {
    }
 
    visibility_config {
-     cloudwatch_metrics_enabled = false
+     cloudwatch_metrics_enabled = true
      metric_name                = "${var.stage}_${var.region}_${var.service_name}_sql_injection_rule"
-     sampled_requests_enabled   = false
+     sampled_requests_enabled   = true
    }
   }
 
@@ -136,9 +136,9 @@ resource "aws_wafv2_web_acl" "web_acl" {
    }
 
    visibility_config {
-     cloudwatch_metrics_enabled = false
+     cloudwatch_metrics_enabled = true
      metric_name                = "${var.stage}_${var.region}_${var.service_name}_xss_rule"
-     sampled_requests_enabled   = false
+     sampled_requests_enabled   = true
    }
   }
 
