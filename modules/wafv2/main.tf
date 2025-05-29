@@ -144,7 +144,7 @@ resource "aws_wafv2_web_acl" "web_acl" {
 
   visibility_config {
     cloudwatch_metrics_enabled = true
-    metric_name                = "${replace(var.stage, "/[^a-zA-Z0-9]/", "")}${replace(var.region, "/[^a-zA-Z0-9]/", "")}${replace(var.service_name, "/[^a-zA-Z0-9]/", "")}webacl"
+    metric_name                = "${var.stage}_${var.region}_${var.service_name}_webacl"
     sampled_requests_enabled   = true
   }
 }
