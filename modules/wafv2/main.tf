@@ -6,6 +6,22 @@ data "aws_caller_identity" "current" {}
 
 data "aws_region" "current" {}
 
+variable "enable_xss_body_rule" {
+  description = "Whether to enable the XSS body-only rule"
+  type        = bool
+  default     = false
+}
+
+locals {
+  xss_body_rule = var.enable_xss_body_rule ? [{
+    name                    = "${var.stage}_${var.region}_${var.service_name}_xss_body_rule"
+    priority                = 30
+    metric_name             = "${var.stage}_${var.region}_${var.service_name}_xss__body_rule"
+    transformation_type     = "NONE"
+    transformation_priority = 5
+  }] : []
+}
+
 # Web ACL
 resource "aws_wafv2_web_acl" "web_acl" {
   name  = "${var.stage}_${var.region}_${var.service_name}_web_acl"
@@ -108,10 +124,6 @@ resource "aws_wafv2_web_acl" "web_acl" {
               priority = 5
               type     = "URL_DECODE"
             }
-            text_transformation {
-              priority = 10
-              type     = "HTML_ENTITY_DECODE"
-            }
           }
         }
         statement {
@@ -123,10 +135,6 @@ resource "aws_wafv2_web_acl" "web_acl" {
               priority = 5
               type     = "URL_DECODE"
             }
-            text_transformation {
-              priority = 10
-              type     = "HTML_ENTITY_DECODE"
-            }
           }
         }
         statement {
@@ -136,28 +144,7 @@ resource "aws_wafv2_web_acl" "web_acl" {
             }
             text_transformation {
               priority = 5
-              type     = "URL_DECODE"
-            }
-            text_transformation {
-              priority = 10
-              type     = "HTML_ENTITY_DECODE"
-            }
-          }
-        }
-        statement {
-          xss_match_statement {
-            field_to_match {
-              single_header {
-                name = "cookie"
-              }
-            }
-            text_transformation {
-              priority = 5
-              type     = "URL_DECODE"
-            }
-            text_transformation {
-              priority = 10
-              type     = "HTML_ENTITY_DECODE"
+              type     = "NONE"
             }
           }
         }
@@ -168,6 +155,39 @@ resource "aws_wafv2_web_acl" "web_acl" {
       cloudwatch_metrics_enabled = true
       metric_name                = "${var.stage}_${var.region}_${var.service_name}_xss_rule"
       sampled_requests_enabled   = true
+    }
+  }
+
+  dynamic "rule" {
+    for_each = local.xss_body_rule
+    content {
+      name     = rule.value.name
+      priority = rule.value.priority
+      action {
+        block {}
+      }
+
+      statement {
+        or_statement {
+          statement {
+            xss_match_statement {
+              field_to_match {
+                body {}
+              }
+              text_transformation {
+                priority = rule.value.transformation_priority
+                type     = rule.value.transformation_type
+              }
+            }
+          }
+        }
+      }
+
+      visibility_config {
+        cloudwatch_metrics_enabled = true
+        metric_name                = rule.value.metric_name
+        sampled_requests_enabled   = true
+      }
     }
   }
 
