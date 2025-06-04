@@ -137,17 +137,6 @@ resource "aws_wafv2_web_acl" "web_acl" {
             }
           }
         }
-        statement {
-          xss_match_statement {
-            field_to_match {
-              body {}
-            }
-            text_transformation {
-              priority = 5
-              type     = "NONE"
-            }
-          }
-        }
       }
     }
 
