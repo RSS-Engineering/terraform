@@ -168,17 +168,13 @@ resource "aws_wafv2_web_acl" "web_acl" {
       }
 
       statement {
-        or_statement {
-          statement {
-            xss_match_statement {
-              field_to_match {
-                body {}
-              }
-              text_transformation {
-                priority = rule.value.transformation_priority
-                type     = rule.value.transformation_type
-              }
-            }
+        xss_match_statement {
+          field_to_match {
+            body {}
+          }
+          text_transformation {
+            priority = rule.value.transformation_priority
+            type     = rule.value.transformation_type
           }
         }
       }
@@ -190,6 +186,7 @@ resource "aws_wafv2_web_acl" "web_acl" {
       }
     }
   }
+
 
   visibility_config {
     cloudwatch_metrics_enabled = true
