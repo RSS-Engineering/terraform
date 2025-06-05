@@ -6,6 +6,22 @@ data "aws_caller_identity" "current" {}
 
 data "aws_region" "current" {}
 
+variable "enable_xss_body_rule" {
+  description = "Whether to enable the XSS body-only rule"
+  type        = bool
+  default     = false
+}
+
+locals {
+  xss_body_rule = var.enable_xss_body_rule ? [{
+    name                    = "${var.stage}_${var.region}_${var.service_name}_xss_body_rule"
+    priority                = 30
+    metric_name             = "${var.stage}_${var.region}_${var.service_name}_xss__body_rule"
+    transformation_type     = "NONE"
+    transformation_priority = 5
+  }] : []
+}
+
 # Web ACL
 resource "aws_wafv2_web_acl" "web_acl" {
   name  = "${var.stage}_${var.region}_${var.service_name}_web_acl"
@@ -39,108 +55,127 @@ resource "aws_wafv2_web_acl" "web_acl" {
   }
 
   rule {
-   name     = "${var.stage}_${var.region}_${var.service_name}_sql_injection_rule"
-   priority = 10
-   action {
-     block {}
-   }
+    name     = "${var.stage}_${var.region}_${var.service_name}_sql_injection_rule"
+    priority = 10
+    action {
+      block {}
+    }
 
-   statement {
-     or_statement {
-       statement {
-         sqli_match_statement {
-           field_to_match {
-             uri_path {}
-           }
-           text_transformation {
-             priority = 5
-             type     = "URL_DECODE"
-           }
-         }
-       }
-       statement {
-         sqli_match_statement {
-           field_to_match {
-             query_string {}
-           }
-           text_transformation {
-             priority = 5
-             type     = "URL_DECODE"
-           }
-         }
-       }
-       statement {
-         sqli_match_statement {
-           field_to_match {
-             body {}
-           }
-           text_transformation {
-             priority = 5
-             type     = "NONE"
-           }
-         }
-       }
-     }
-   }
+    statement {
+      or_statement {
+        statement {
+          sqli_match_statement {
+            field_to_match {
+              uri_path {}
+            }
+            text_transformation {
+              priority = 5
+              type     = "URL_DECODE"
+            }
+          }
+        }
+        statement {
+          sqli_match_statement {
+            field_to_match {
+              query_string {}
+            }
+            text_transformation {
+              priority = 5
+              type     = "URL_DECODE"
+            }
+          }
+        }
+        statement {
+          sqli_match_statement {
+            field_to_match {
+              body {}
+            }
+            text_transformation {
+              priority = 5
+              type     = "NONE"
+            }
+          }
+        }
+      }
+    }
 
-   visibility_config {
-     cloudwatch_metrics_enabled = true
-     metric_name                = "${var.stage}_${var.region}_${var.service_name}_sql_injection_rule"
-     sampled_requests_enabled   = true
-   }
+    visibility_config {
+      cloudwatch_metrics_enabled = true
+      metric_name                = "${var.stage}_${var.region}_${var.service_name}_sql_injection_rule"
+      sampled_requests_enabled   = true
+    }
   }
 
   rule {
-   name     = "${var.stage}_${var.region}_${var.service_name}_xss_rule"
-   priority = 20
-   action {
-     block {}
-   }
+    name     = "${var.stage}_${var.region}_${var.service_name}_xss_rule"
+    priority = 20
+    action {
+      block {}
+    }
 
-   statement {
-     or_statement {
-       statement {
-         xss_match_statement {
-           field_to_match {
-             uri_path {}
-           }
-           text_transformation {
-             priority = 5
-             type     = "URL_DECODE"
-           }
-         }
-       }
-       statement {
-         xss_match_statement {
-           field_to_match {
-             query_string {}
-           }
-           text_transformation {
-             priority = 5
-             type     = "URL_DECODE"
-           }
-         }
-       }
-       statement {
-         xss_match_statement {
-           field_to_match {
-             body {}
-           }
-           text_transformation {
-             priority = 5
-             type     = "NONE"
-           }
-         }
-       }
-     }
-   }
+    statement {
+      or_statement {
+        statement {
+          xss_match_statement {
+            field_to_match {
+              uri_path {}
+            }
+            text_transformation {
+              priority = 5
+              type     = "URL_DECODE"
+            }
+          }
+        }
+        statement {
+          xss_match_statement {
+            field_to_match {
+              query_string {}
+            }
+            text_transformation {
+              priority = 5
+              type     = "URL_DECODE"
+            }
+          }
+        }
+      }
+    }
 
-   visibility_config {
-     cloudwatch_metrics_enabled = true
-     metric_name                = "${var.stage}_${var.region}_${var.service_name}_xss_rule"
-     sampled_requests_enabled   = true
-   }
+    visibility_config {
+      cloudwatch_metrics_enabled = true
+      metric_name                = "${var.stage}_${var.region}_${var.service_name}_xss_rule"
+      sampled_requests_enabled   = true
+    }
   }
+
+  dynamic "rule" {
+    for_each = local.xss_body_rule
+    content {
+      name     = rule.value.name
+      priority = rule.value.priority
+      action {
+        block {}
+      }
+
+      statement {
+        xss_match_statement {
+          field_to_match {
+            body {}
+          }
+          text_transformation {
+            priority = rule.value.transformation_priority
+            type     = rule.value.transformation_type
+          }
+        }
+      }
+
+      visibility_config {
+        cloudwatch_metrics_enabled = true
+        metric_name                = rule.value.metric_name
+        sampled_requests_enabled   = true
+      }
+    }
+  }
+
 
   visibility_config {
     cloudwatch_metrics_enabled = true
@@ -188,8 +223,8 @@ data "aws_iam_policy_document" "web_acl_policy_document" {
 
 # CloudWatch Log Group for WAFv2 Logging
 resource "aws_cloudwatch_log_group" "web_acl_log" {
-  name              = "aws-waf-logs-${var.stage}_${var.region}_${var.service_name}"
-  count             = var.enabled
+  name  = "aws-waf-logs-${var.stage}_${var.region}_${var.service_name}"
+  count = var.enabled
 }
 
 # Log web ACL traffic logs.

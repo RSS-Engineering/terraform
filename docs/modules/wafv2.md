@@ -12,6 +12,7 @@ module "wafv2" {
   stage                        = var.stage
   region                       = var.region
   service_name                 = var.service_name
+  enable_xss_body_rule         = false # Use false to skip xss body rule or true to create a body rule
   acl_association_resource_arn = "arn:aws:apigateway:${var.region}::/restapis/${module.device_service_api.api_id}/stages/${var.stage}"
   enabled                      = 1
 }
