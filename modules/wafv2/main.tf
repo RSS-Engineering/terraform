@@ -6,12 +6,6 @@ data "aws_caller_identity" "current" {}
 
 data "aws_region" "current" {}
 
-variable "enable_xss_body_rule" {
-  description = "Whether to enable the XSS body-only rule"
-  type        = bool
-  default     = false
-}
-
 locals {
   xss_body_rule = var.enable_xss_body_rule ? [{
     name                    = "${var.stage}_${var.region}_${var.service_name}_xss_body_rule"
@@ -25,7 +19,7 @@ locals {
 # Web ACL
 resource "aws_wafv2_web_acl" "web_acl" {
   name  = "${var.stage}_${var.region}_${var.service_name}_web_acl"
-  scope = "REGIONAL"
+  scope = var.scope
   count = var.enabled
 
   default_action {
@@ -188,7 +182,7 @@ resource "aws_wafv2_web_acl" "web_acl" {
 resource "aws_wafv2_web_acl_association" "web_acl_association" {
   resource_arn = var.acl_association_resource_arn
   web_acl_arn  = aws_wafv2_web_acl.web_acl[count.index].arn
-  count        = var.enabled
+  count        = var.scope == "REGIONAL" ? 1 : 0
 }
 
 resource "aws_cloudwatch_log_resource_policy" "web_acl_resource_policy" {

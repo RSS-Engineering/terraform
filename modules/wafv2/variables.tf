@@ -26,3 +26,16 @@ variable "enabled" {
   type    = number
   default = 0
 }
+
+variable "enable_xss_body_rule" {
+  description = "Whether to enable the XSS body-only rule"
+  type        = bool
+  default     = false
+}
+
+# Specifies whether scope for an AWS CloudFront distribution(CLOUDFRONT) or for a
+# regional application(REGIONAL)
+variable "scope" {
+  type    = string
+  default = "REGIONAL"
+}
