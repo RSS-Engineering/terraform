@@ -26,4 +26,5 @@ module "wafv2" {
 The following arguments are supported:
 
 * `enabled` - Enable or disable the WAF deployment. It is Set to 0 by default to ensure unintentional deployment doesn't occur.
+* `enable_xss_body_rule` - Specifies whether to create or skip xss body rule from web acl
 * `scope` - Specifies whether WAF deployment for an AWS CloudFront distribution or for a regional application. Valid values are **CLOUDFRONT** or **REGIONAL**. To work with CloudFront, you must specify the region **us-east-1 (N. Virginia)** on the AWS provider.
