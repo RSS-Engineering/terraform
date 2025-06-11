@@ -1,6 +1,6 @@
-# wafv2
+# Web Application Firewall (WAFV2)
 
-**wafv2** is a web application firewall that lets you monitor the HTTP and HTTPS requests that are forwarded to a protected resource like Amazon CloudFront distribution, Amazon API Gateway REST API, Application Load Balancer, etc.
+**Web Application Firewall (WAFV2)** is a web application firewall that lets you monitor the HTTP and HTTPS requests that are forwarded to a protected resource like Amazon CloudFront distribution, Amazon API Gateway REST API, Application Load Balancer, etc.
 
 ## Example Usage
 
