@@ -12,7 +12,7 @@ module "wafv2" {
   stage                        = var.stage
   region                       = var.region
   service_name                 = var.service_name
-  scope                        = "REGIONAL" # Use "CLOUDFRONT" for AWS CloudFront distribution
+  scope                        = "REGIONAL" # Use "CLOUDFRONT" for AWS CloudFront distribution. When "CLOUDFRONT" selected, WAF operates at the global level.
   enable_xss_body_rule         = false # Use false to skip xss body rule or true to create a body rule
   acl_association_resource_arn = "arn:aws:apigateway:${var.region}::/restapis/${module.device_service_api.api_id}/stages/${var.stage}"
   enabled                      = 1
@@ -27,4 +27,4 @@ The following arguments are supported:
 
 * `enabled` - Enable or disable the WAF deployment. It is Set to 0 by default to ensure unintentional deployment doesn't occur.
 * `enable_xss_body_rule` - Specifies whether to create or skip xss body rule from web acl
-* `scope` - Specifies whether WAF deployment for an AWS CloudFront distribution or for a regional application. Valid values are **CLOUDFRONT** or **REGIONAL**. To work with CloudFront, you must specify the region **us-east-1 (N. Virginia)** on the AWS provider.
+* `scope` - Specifies whether WAF deployment for an AWS CloudFront distribution or for a regional application. Valid values are **CLOUDFRONT** or **REGIONAL**. To work with CloudFront, you must specify the region **us-east-1 (N. Virginia)** on the AWS provider. When "CLOUDFRONT" selected, WAF operates at the global level.
