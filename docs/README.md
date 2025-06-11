@@ -69,4 +69,4 @@ The [identity_token_rotation](modules/identity_token_rotation.md) module will ge
 
 ### [Web Application Firewall(WAFV2)](modules/wafv2.md)
 
-The [Web Application Firewall (WAFV2)](modules/wafv2.md) module associates WebACL with ALB, API Gateway etc. Create logging configuration and rule statements.
+The [Web Application Firewall (WAFV2)](modules/wafv2.md) module associates WebACL with ALB, API Gateway etc., creates logging configuration and rule statements.
