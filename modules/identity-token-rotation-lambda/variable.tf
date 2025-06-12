@@ -24,3 +24,7 @@ variable "rotation_schedule_expression" {
   type = string
   default = "rate(4 hours)"
 }
+variable "build_in_docker" {
+  type = bool
+  default = false
+}
