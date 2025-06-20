@@ -215,9 +215,17 @@ data "aws_iam_policy_document" "web_acl_policy_document" {
   }
 }
 
+# `tfsec` reported a LOW severity issue in platform-services-observability
+# CloudWatch Log Group is not encrypted with a customer-managed key (CMK)
+resource "aws_kms_key" "log_group_kms" {
+  description             = "KMS key for encrypting CloudWatch Logs"
+  enable_key_rotation     = true
+}
+
 # CloudWatch Log Group for WAFv2 Logging
 resource "aws_cloudwatch_log_group" "web_acl_log" {
   name  = "aws-waf-logs-${var.stage}_${var.region}_${var.service_name}"
+  kms_key_id = aws_kms_key.log_group_kms.arn
   count = var.enabled
 }
 
