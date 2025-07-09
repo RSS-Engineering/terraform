@@ -75,7 +75,7 @@ runs:
       id: plan
       shell: bash
       run: |
-        terraform -chdir=${{ inputs.root }} plan -out "tf_plan_${{ github.sha }}" -input=false >> /dev/null && terraform -chdir=${{ inputs.root }} show -no-color "tf_plan_${{ github.sha }}"
+        terraform -chdir=${{ inputs.root }} plan -out "tf_plan_${{ github.sha }}" -input=false && terraform -chdir=${{ inputs.root }} show -no-color "tf_plan_${{ github.sha }}"
 
     - name: Save Terraform Plan
       if: inputs.plan_artifact_name != '' && steps.plan.outcome == 'success'
