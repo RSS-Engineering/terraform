@@ -10,7 +10,7 @@
 
 ```terraform
 module "s3_access_log_bucket" {
-  source = "github.com/RSS-Engineering/terraform.git?ref=<commit>/modules/s3_access_logging"
+  source = "git@github.com:RSS-Engineering/terraform//modules/s3_access_logging?ref=<commit>"
 
   bucket_name = "whatever-logs-${var.environment}-${local.account_id}"
   log_sources = [

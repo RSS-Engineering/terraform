@@ -14,7 +14,7 @@ If your bucket already exists and uses ACLs (which are deprecated), you may need
 
 ```terraform
 module "terraform_state_bucket" {
-  source = "github.com/RSS-Engineering/terraform.git?ref=<commit>/modules/s3_bucket"
+  source = "git@github.com:RSS-Engineering/terraform//modules/s3_bucket?ref=<commit>"
 
   name                       = "whatever-terraform-state-${var.environment}-${local.account_id}"
   enable_versioning          = true
@@ -26,7 +26,7 @@ module "terraform_state_bucket" {
 
 ```terraform
 module "micro_ui" {
-  source = "github.com/RSS-Engineering/terraform.git?ref=<commit>/modules/s3_bucket"
+  source = "git@github.com:RSS-Engineering/terraform//modules/s3_bucket?ref=<commit>"
 
   name              = "whatever-ui-${var.environment}-${local.account_id}"
   cloudfront_arns   = ["arn:aws:cloudfront::507897595701:distribution/E285AA1RBBB6EJ"]
@@ -37,7 +37,7 @@ module "micro_ui" {
 
 ```terraform
 module "test_bucket" {
-  source = "github.com/RSS-Engineering/terraform.git?ref=<commit>/modules/s3_bucket"
+  source = "git@github.com:RSS-Engineering/terraform//modules/s3_bucket?ref=<commit>"
 
   name              = "testbucket"
   bucket_policies   = [

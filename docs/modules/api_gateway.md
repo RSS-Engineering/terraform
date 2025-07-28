@@ -13,7 +13,7 @@ This module abstracts the V1 API since the V2 API is sufficiently well-designed 
 
 ```terraform
 module "api_gateway" {
-  source = "github.com/RSS-Engineering/terraform.git?ref={commit}/modules/api_gateway"
+  source = "git@github.com:RSS-Engineering/terraform//modules/api_gateway?ref={commit}"
 
   name                  = "API Gateway"
   description           = "REST Endpoints"
