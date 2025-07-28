@@ -12,7 +12,7 @@ This module is just one part of a recommended security monitoring architecture -
 
 ```terraform
 module "security_hub_ap-northeast-1" {
-  source    = "github.com/RSS-Engineering/terraform.git?ref={commit}/modules/security_hub"
+  source    = "git@github.com:RSS-Engineering/terraform//modules/security_hub?ref={commit}"
   instance  = var.environment
   providers = {
     aws = aws.ap-northeast-1

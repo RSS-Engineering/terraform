@@ -10,7 +10,7 @@
 
 ```terraform
 module "secrets" {
-  source = "github.com/RSS-Engineering/terraform.git?ref={commit}/modules/kms_secrets"
+  source = "git@github.com:RSS-Engineering/terraform//modules/kms_secrets?ref={commit}"
 
   context = {
     environment = "dev"

@@ -33,7 +33,7 @@ provider "datadog" {
 
 module "datadog_aws_integration" {
   count = local.enable_datadog ? 1 : 0
-  source = "github.com/RSS-Engineering/terraform.git?ref={commit}/modules/datadog_aws_integration"
+  source = "git@github.com:RSS-Engineering/terraform//modules/datadog_aws_integration?ref={commit}"
 
   host_tags = {
     "account" : data.aws_caller_identity.current.account_id,

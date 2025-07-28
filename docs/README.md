@@ -21,7 +21,7 @@ They can be included in your Terraform code like this ([kms_secrets](modules/kms
 
 ```terraform
 module "secrets" {
-  source = "github.com/RSS-Engineering/terraform.git?ref={commit}/modules/kms_secrets"
+  source = "git@github.com:RSS-Engineering/terraform//modules/kms_secrets?ref={commit}"
 
   context = {
     environment = "dev"

@@ -12,7 +12,7 @@ This module is just one part of a recommended security monitoring architecture -
 
 ```terraform
 module "guardduty_ap-northeast-1" {
-  source    = "github.com/RSS-Engineering/terraform.git?ref={commit}/modules/guardduty"
+  source    = "git@github.com:RSS-Engineering/terraform//modules/guardduty?ref={commit}"
   instance  = var.environment
   providers = {
     aws = aws.sec-ap-northeast-1
