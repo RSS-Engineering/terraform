@@ -1,3 +1,3 @@
-output "external_id" {
-  value = datadog_integration_aws.integration.external_id
+output "id" {
+  value = datadog_integration_aws_account.integration.id
 }

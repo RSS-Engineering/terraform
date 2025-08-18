@@ -41,11 +41,20 @@ module "datadog_aws_integration" {
     "service" : "Application",
     "env" : "production",
   }
-  namespace_rules = {
-    "api_gateway" : true,
-    "cloudfront" : true,
-    "cloudwatch_events" : true
-  }
+
+  included_namespaces = [
+    "AWS/ApiGateway",
+    "AWS/CloudFront",
+    "AWS/DynamoDB",
+    "AWS/EC2",
+    "AWS/ECS",
+    "AWS/ELB",
+    "AWS/Lambda",
+    "AWS/RDS",
+    "AWS/S3",
+    "AWS/SNS",
+    "AWS/SQS",
+  ]
 }
 
 resource "datadog_monitor" "apigateway_latency_monitor" {
@@ -79,4 +88,4 @@ EOF
 The following arguments are supported:
 
 * `host_tags` - (optional) A map of strings to be applied as tags to each metric ingested through this integration. The key-value pair will be converted to a single tag formatted like "{k}:{v}"
-* `namespace_rules` - (optional) Specifically enables or disables metric collection for specific AWS namespaces for this _AWS account only_. A list of namespaces can be found at the [available namespace rules API endpoint](https://docs.datadoghq.com/api/v1/aws-integration/#list-namespace-rules). Omitting a namespace will not change it from the default integration settings.
+* `included_namespaces` - (optional) Include only these namespaces for metrics collection for this _AWS account only_. A list of namespaces can be found at the [available namespace rules API endpoint](https://docs.datadoghq.com/api/v1/aws-integration/#list-namespace-rules). Defaults to an empty list, which means no metrics will be collected.
