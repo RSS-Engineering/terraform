@@ -231,7 +231,6 @@ resource "aws_api_gateway_deployment" "deployment" {
   triggers = {
     redeployment = local.redeployment_hash
   }
-  stage_description = local.redeployment_hash
 
   lifecycle {
     create_before_destroy = true
