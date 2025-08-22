@@ -14,6 +14,7 @@ data "external" "build" {
     dependency_manager   = var.dependency_manager
     runtime              = var.runtime
     dependency_lock_file = var.dependency_lock_file_path
+    use_ecr_image        = var.use_ecr_image
     pre_package_commands = jsonencode(var.pre_package_commands)
   }
 }
