@@ -1,13 +1,4 @@
 locals {
-  account_id = data.aws_caller_identity.current.account_id
-  integration_lambda_list = [
-    for key, value in var.routes :
-    value["lambda_key"] if lookup(value, "lambda_key", "") != ""
-  ]
-  integration_keys = {
-    for k in distinct(local.integration_lambda_list) :
-    k => ""
-  }
   routes = {
     for key, value in var.routes : trimprefix(key, "/") => {
       method         = lookup(value, "method", "ANY")
@@ -50,7 +41,6 @@ locals {
 }
 
 data "aws_region" "current" {}
-data "aws_caller_identity" "current" {}
 
 data "aws_iam_policy_document" "assume_role" {
   statement {
