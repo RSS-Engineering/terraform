@@ -9,3 +9,15 @@ variable "included_metrics" {
   type        = list(string)
   default     = []
 }
+
+variable "app_key" {
+  description = "The Datadog application key."
+  type        = string
+  sensitive   = true
+}
+
+variable "api_key" {
+  description = "The Datadog API key."
+  type        = string
+  sensitive   = true
+}

@@ -1,12 +1,17 @@
 terraform {
   required_providers {
     aws = {
-      source  = "hashicorp/aws"
+      source = "hashicorp/aws"
     }
     datadog = {
       source = "DataDog/datadog"
     }
   }
+}
+
+provider "datadog" {
+  app_key = var.app_key
+  api_key = var.api_key
 }
 
 data "aws_caller_identity" "current" {}

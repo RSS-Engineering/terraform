@@ -5,24 +5,11 @@
 ## Example Usage
 
 ```terraform
-terraform {
-  required_providers {
-    aws = {
-      source = "hashicorp/aws"
-    }
-    datadog = {
-      source  = "DataDog/datadog"
-    }
-  }
-}
-
-provider "datadog" {
-  app_key = "" # Recommended to use the kms_secrets module here
-  api_key = "" # Recommended to use the kms_secrets module here
-}
-
 module "datadog_aws_integration_v2" {
   source = "git@github.com:RSS-Engineering/terraform//modules/datadog_aws_integration_v2?ref={commit}"
+
+  app_key = "" # Recommended to use the kms_secrets module here
+  api_key = "" # Recommended to use the kms_secrets module here
 
   tags = [
     "account:${data.aws_caller_identity.current.account_id}",
@@ -30,6 +17,7 @@ module "datadog_aws_integration_v2" {
     "service:Application",
     "env:production"
   ]
+
   included_metrics = ["AWS/SQS", "AWS/ElasticMapReduce"]
 }
 ```
@@ -40,5 +28,7 @@ module "datadog_aws_integration_v2" {
 
 The following arguments are supported:
 
-* `tags` - (optional) A list of tags to to apply to all metrics in the account.
-* `included_metrics` - (optional) List of metric namespaces to be collected. A list of namespaces can be found at the [available namespace rules API endpoint](https://docs.datadoghq.com/api/v1/aws-integration/#list-namespace-rules). Nothing will be collected if this is not set.
+- `app_key` - (required) The Datadog application key.
+- `api_key` - (required) The Datadog API key.
+- `tags` - (optional) A list of tags to to apply to all metrics in the account.
+- `included_metrics` - (optional) List of metric namespaces to be collected. Use [datadog_integration_aws_available_namespaces](https://registry.terraform.io/providers/DataDog/datadog/latest/docs/data-sources/integration_aws_available_namespaces) data source to get allowed values or you can find them at [AWS services metrics](https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/aws-services-cloudwatch-metrics.html). Nothing will be collected if this is not set.
