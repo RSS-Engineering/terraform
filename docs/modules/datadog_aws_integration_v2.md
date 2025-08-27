@@ -18,7 +18,7 @@ module "datadog_aws_integration_v2" {
     "env:production"
   ]
 
-  included_metrics = ["AWS/SQS", "AWS/ElasticMapReduce"]
+  excluded_metrics = ["AWS/SQS", "AWS/ElasticMapReduce"]
 }
 ```
 
