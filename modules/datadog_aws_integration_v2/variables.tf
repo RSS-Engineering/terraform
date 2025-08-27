@@ -4,10 +4,10 @@ variable "tags" {
   default     = []
 }
 
-variable "included_metrics" {
-  description = "A list of metrics to include in the integration."
+variable "excluded_metrics" {
+  description = "A list of metrics to exclude in the integration."
   type        = list(string)
-  default     = []
+  default     = ["AWS/SQS", "AWS/ElasticMapReduce"]
 }
 
 variable "app_key" {

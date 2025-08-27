@@ -33,6 +33,7 @@ data "aws_iam_policy_document" "datadog_aws_integration_assume_role" {
   }
 }
 
+// This is from https://app.datadoghq.com/integrations/amazon-web-services/add?amount=single&method=terraform&vuln_container_enabled=true&vuln_host_enabled=true&vuln_lambda_enabled=true
 data "aws_iam_policy_document" "datadog_aws_integration" {
   statement {
     actions = [
@@ -308,7 +309,7 @@ resource "datadog_integration_aws_account" "datadog_integration" {
   }
   metrics_config {
     namespace_filters {
-      include_only = var.included_metrics
+      exclude_only = var.excluded_metrics
     }
   }
 }
