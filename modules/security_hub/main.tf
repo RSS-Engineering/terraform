@@ -19,6 +19,14 @@ removed {
 }
 
 removed {
+  from = aws_securityhub_standards_subscription.pci
+
+  lifecycle {
+    destroy = false
+  }
+}
+
+removed {
   from = aws_securityhub_product_subscription.guardduty
 
   lifecycle {
