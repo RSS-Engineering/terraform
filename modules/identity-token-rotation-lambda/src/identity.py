@@ -142,7 +142,7 @@ class RackImpersonationIdentity:
 def _get_base_url():
     if os.environ.get("USE_JANUS_PROXY", False):
         return "https://proxy.api.manage.rackspace.com/identity"
-    return "https://identity-internal.api.rackspacecloud.com"
+    return os.environ.get("IDENTITY_ENDPOINT")
 
 
 def validate(token):

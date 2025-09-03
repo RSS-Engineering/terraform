@@ -52,6 +52,7 @@ module "lambda_function" {
     POWERTOOLS_SERVICE_NAME    = "${var.resource_prefix}-token-rotation"
     SERVICE_ACCOUNT_SECRET_ARN = var.service_account_secret_arn
     USE_JANUS_PROXY            = var.use_janus_proxy
+    IDENTITY_ENDPOINT          = var.identity_endpoint
   }
   attach_tracing_policy    = true
   attach_network_policy    = true

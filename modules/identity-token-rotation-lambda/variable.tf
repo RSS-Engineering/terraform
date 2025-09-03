@@ -20,6 +20,10 @@ variable "use_janus_proxy" {
   type = bool
   default = true
 }
+variable "identity_endpoint" {
+  type = string
+  default = "https://identity-internal.api.rackspacecloud.com"
+}
 variable "rotation_schedule_expression" {
   type = string
   default = "rate(4 hours)"
