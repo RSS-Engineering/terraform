@@ -49,3 +49,11 @@ variable "additional_expiration_rules" {
     error_message = "All expiration rules must specify either expiration_days or noncurrent_expiration_days"
   }
 }
+
+variable "tags" {
+  type = map(string)
+
+  default = {
+    Terraform = "managed"
+  }
+}
