@@ -40,6 +40,7 @@ module "test_bucket" {
   source = "git@github.com:RSS-Engineering/terraform//modules/s3_bucket?ref=<commit>"
 
   name              = "testbucket"
+  tags              = {}
   bucket_policies   = [
     data.aws_iam_policy_document.example_policy1.json,
     data.aws_iam_policy_document.example_policy2.json
@@ -62,6 +63,7 @@ data "aws_iam_policy_document" "example_policy2" {
 The following arguments are supported:
 
 - `name` - name of the bucket
+- `tags` - (optional) A mapping of tags to be applied to the S3 bucket.
 - `bucket_policies` - list of additional bucket policies (as a json string) to attach to the bucket
 - `enable_versioning` - whether or not to enable versioning, defaults to `false`
 - `expiration_days` - number of days until objects expire, defaults to `null` for no expiration
