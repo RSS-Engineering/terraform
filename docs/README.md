@@ -70,3 +70,7 @@ The [identity_token_rotation](modules/identity_token_rotation.md) module will ge
 ### [Web Application Firewall(WAFV2)](modules/wafv2.md)
 
 The [Web Application Firewall (WAFV2)](modules/wafv2.md) module associates WebACL with ALB, API Gateway etc., creates logging configuration and rule statements.
+
+### [connectivity_check](modules/connectivity_check.md)
+
+The [connectivity_check](modules/connectivity_check.md) module deploys a Lambda function to test network connectivity from VPC subnets. Tests TCP, HTTP, and HTTPS connectivity with detailed error reporting and latency measurements.
