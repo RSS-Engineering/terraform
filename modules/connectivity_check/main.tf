@@ -22,7 +22,7 @@ module "lambda" {
 
   source_path = [
     {
-      path             = "${path.module}/lambda"
+      path = "${path.module}/lambda"
       # lambda has no npm dependencies, so this can be skipped
       npm_requirements = false
     }
@@ -36,4 +36,9 @@ module "lambda" {
   attach_network_policy  = true
 
   cloudwatch_logs_retention_in_days = var.log_retention_days
+
+  tags = {
+    connectivity_check         = "true"
+    connectivity_check_version = "v1"
+  }
 }
