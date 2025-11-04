@@ -20,7 +20,13 @@ module "lambda" {
     NODE_OPTIONS = "--experimental-transform-types"
   }
 
-  source_path = "${path.module}/lambda"
+  source_path = [
+    {
+      path             = "${path.module}/lambda"
+      # lambda has no npm dependencies, so this can be skipped
+      npm_requirements = false
+    }
+  ]
 
   timeout     = var.timeout
   memory_size = var.memory_size
