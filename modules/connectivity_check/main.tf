@@ -17,7 +17,7 @@ module "lambda" {
   handler       = "index.handler"
   runtime       = "nodejs22.x"
   environment_variables = {
-    NODE_OPTIONS = "--experimental-transform-types"
+    NODE_OPTIONS = "--experimental-strip-types --experimental-transform-types"
   }
 
   source_path = [
