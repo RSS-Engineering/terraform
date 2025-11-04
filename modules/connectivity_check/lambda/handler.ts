@@ -193,7 +193,7 @@ async function testHttp(target: TestTarget): Promise<TestResult> {
       host: target.host,
       port: target.port,
       protocol: target.protocol,
-      success: response.ok,
+      success: true, // we don't really care about status code, just connectivity
       resolvedIp: dnsResult.ip,
       latencyMs: Date.now() - start,
       httpStatus: response.status,
