@@ -1,0 +1,18 @@
+{
+  "scripts": {
+    "test-connectivity": "node test-connectivity.ts"
+  },
+  "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
+  "dependencies": {
+    "@aws-sdk/client-ec2": "^3.920.0",
+    "@aws-sdk/client-lambda": "^3.920.0",
+    "@aws-sdk/client-resource-groups-tagging-api": "^3.920.0"
+  },
+  "devDependencies": {
+    "@types/node": "^24.9.2",
+    "typescript": "^5.9.3"
+  }
+}
