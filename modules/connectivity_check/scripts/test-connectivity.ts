@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 
+import { parseArgs } from 'node:util';
 import {
   EC2Client,
   DescribeTransitGatewayVpcAttachmentsCommand,
@@ -62,6 +63,119 @@ interface ConnectivityTestResult {
   error?: string;
 }
 
+interface ParsedArgs {
+  ddis: string[];
+  awsAccountNumbers: string[];
+  regions: string[];
+  token: string;
+}
+
+interface AccountWithDdi {
+  awsAccountNumber: string;
+  ddi: string;
+}
+
+function validateNumericString(value: string, fieldName: string): void {
+  if (!/^\d+$/.test(value)) {
+    throw new Error(`${fieldName} must contain only numeric characters: ${value}`);
+  }
+}
+
+function parseCliArgs(): ParsedArgs {
+  const { values } = parseArgs({
+    options: {
+      ddi: { type: 'string', multiple: true },
+      'awsAccountNumber': { type: 'string', multiple: true },
+      region: { type: 'string', multiple: true },
+      token: { type: 'string', short: 't' },
+      help: { type: 'boolean', short: 'h' },
+    },
+    allowPositionals: false,
+  });
+
+  if (values.help) {
+    printHelp();
+    process.exit(0);
+  }
+
+  const token = values.token as string;
+  if (!token) {
+    console.error('Missing required argument: --token');
+    printHelp();
+    process.exit(1);
+  }
+
+  const ddis = (values.ddi as string[]) || [];
+  const awsAccountNumbers = (values['awsAccountNumber'] as string[]) || [];
+
+  if (ddis.length === 0 && awsAccountNumbers.length === 0) {
+    console.error('At least one --ddi or --awsAccountNumber must be provided');
+    printHelp();
+    process.exit(1);
+  }
+
+  // Validate that DDIs and account numbers are numeric
+  ddis.forEach(ddi => validateNumericString(ddi, 'DDI'));
+  awsAccountNumbers.forEach(accountNumber => validateNumericString(accountNumber, 'AWS Account Number'));
+
+  const regions = (values.region as string[]) || REGIONS;
+
+  return {
+    ddis,
+    awsAccountNumbers,
+    regions,
+    token,
+  };
+}
+
+function printHelp() {
+  console.log(`
+TGW Connectivity Tester
+
+Tests network connectivity through AWS Transit Gateways by discovering and invoking
+connectivity check Lambda functions deployed in VPCs attached to specified Transit Gateways.
+
+Usage:
+  node test-connectivity.ts --token <RACKSPACE_API_TOKEN> [options]
+
+Required:
+  -t, --token <token>               Rackspace API token for fetching AWS credentials
+
+Input Options (at least one required):
+  --ddi <ddi>                       DDI number (can be specified multiple times)
+  --awsAccountNumber <account>      AWS account number (can be specified multiple times)
+
+Optional:
+  --region <region>                 AWS region to test (can be specified multiple times)
+                                   Default: ${REGIONS.join(', ')}
+  -h, --help                       Show this help message
+
+Examples:
+  # Test specific DDIs in default regions
+  node test-connectivity.ts --token $(tok -nq racker) --ddi 12345 --ddi 67890
+
+  # Test specific AWS account numbers in specific regions
+  node test-connectivity.ts --token $(tok -nq racker) \\
+    --awsAccountNumber 111111111111 \\
+    --awsAccountNumber 222222222222 \\
+    --region us-east-1 \\
+    --region us-west-2
+
+  # Test both DDIs and account numbers
+  node test-connectivity.ts --token $(tok -nq racker) \\
+    --ddi 12345 \\
+    --awsAccountNumber 111111111111 \\
+    --region us-west-2
+
+Notes:
+  - DDIs are collections of AWS accounts; the script will fetch all associated accounts
+  - AWS account numbers must be numeric strings (can start with 0)
+  - When both DDIs and account numbers are provided, accounts are merged (duplicates removed)
+  - For direct account numbers, the script will automatically look up the associated DDI
+  - Lambda functions must be tagged with connectivity_check: "true"
+  `);
+}
+
 async function getAwsAccounts(ddi: string, token: string): Promise<any[]> {
   const res = await fetch(
     `https://accounts.api.manage.rackspace.com/v0/awsAccounts`,
@@ -75,6 +189,48 @@ async function getAwsAccounts(ddi: string, token: string): Promise<any[]> {
 
   const data = await res.json();
   return data.awsAccounts;
+}
+
+async function findDDIForAccount(
+  awsAccountNumber: string,
+  token: string
+): Promise<string> {
+  const res = await fetch(
+    `https://accounts.api.manage.rackspace.com/v0/awsAccounts/search?criteria=${awsAccountNumber}`,
+    {
+      headers: {
+        'X-Auth-Token': token,
+      },
+    }
+  );
+
+  if (!res.ok) {
+    throw new Error(
+      `Failed to search for AWS account ${awsAccountNumber}: ${res.status} ${res.statusText}`
+    );
+  }
+
+  const data = await res.json();
+
+  if (!data.results || !Array.isArray(data.results)) {
+    throw new Error(
+      `Invalid response format when searching for AWS account ${awsAccountNumber}`
+    );
+  }
+
+  const matchingResult = data.results.find(
+    (result: any) => result.awsAccount?.awsAccountNumber === awsAccountNumber
+  );
+
+  if (!matchingResult) {
+    throw new Error(`AWS account ${awsAccountNumber} not found in any DDI`);
+  }
+
+  if (!matchingResult.awsAccount?.ddi) {
+    throw new Error(`DDI not found for AWS account ${awsAccountNumber}`);
+  }
+
+  return matchingResult.awsAccount.ddi;
 }
 
 async function getCreds(
@@ -209,7 +365,6 @@ async function findConnectivityLambdas(
     credentials: creds,
   });
 
-  // Query for lambdas with connectivity_check tags
   const resources = await taggingClient.send(
     new GetResourcesCommand({
       TagFilters: [
@@ -225,7 +380,6 @@ async function findConnectivityLambdas(
   for (const resource of resources.ResourceTagMappingList || []) {
     if (!resource.ResourceARN) continue;
 
-    // Extract function name from ARN
     const arnParts = resource.ResourceARN.split(':');
     const functionName = arnParts[arnParts.length - 1];
 
@@ -237,7 +391,6 @@ async function findConnectivityLambdas(
     const account = arnParts[4];
 
     if (subnetIds.length > 0) {
-      // Get VPC ID from first subnet
       const subnetDetails = await ec2.send(
         new DescribeSubnetsCommand({ SubnetIds: [subnetIds[0]] })
       );
@@ -274,7 +427,6 @@ async function invokeLambda(
     })
   );
 
-  // Check for function errors
   if (response.FunctionError) {
     const errorPayload = response.Payload
       ? new TextDecoder().decode(response.Payload)
@@ -291,7 +443,6 @@ async function invokeLambda(
   const resultStr = new TextDecoder().decode(response.Payload);
   const parsed = JSON.parse(resultStr);
 
-  // Verify it's an array
   if (!Array.isArray(parsed)) {
     throw new Error(`Lambda returned non-array response: ${resultStr}`);
   }
@@ -299,127 +450,155 @@ async function invokeLambda(
   return parsed;
 }
 
-// Main
-const token = process.argv[2];
-const ddis = process.argv.slice(3);
-
-if (!token || ddis.length === 0) {
-  console.error(
-    'Usage: ts-node script.ts <API_TOKEN> <DDI1> [DDI2] [DDI3] ...'
-  );
-  process.exit(1);
-}
-
+const args = parseCliArgs();
 const allResults: ConnectivityTestResult[] = [];
 
-for (const ddi of ddis) {
+// Collect all unique AWS accounts with their associated DDIs
+const accountsWithDdis = new Map<string, AccountWithDdi>();
+
+// For each DDI, fetch associated AWS accounts and add to the map
+for (const ddi of args.ddis) {
   console.log(`\nProcessing DDI ${ddi}...`);
-  const accounts = await getAwsAccounts(ddi, token);
-  console.log(`Found ${accounts.length} accounts`);
+  const accounts = await getAwsAccounts(ddi, args.token);
+  console.log(`Found ${accounts.length} accounts for DDI ${ddi}`);
 
   for (const account of accounts) {
-    console.log(`\n  Account: ${account.name} (${account.awsAccountNumber})`);
-    const creds = await getCreds(ddi, account.awsAccountNumber, token);
+    accountsWithDdis.set(account.awsAccountNumber, {
+      awsAccountNumber: account.awsAccountNumber,
+      ddi: ddi
+    });
+  }
+}
 
-    for (const region of REGIONS) {
-      const tgwId = TGW_MAP[region];
-      if (!tgwId) continue;
+// For direct AWS account numbers, look up their DDIs
+for (const awsAccountNumber of args.awsAccountNumbers) {
+  if (!accountsWithDdis.has(awsAccountNumber)) {
+    console.log(`\nLooking up DDI for AWS account ${awsAccountNumber}...`);
+    try {
+      const ddi = await findDDIForAccount(awsAccountNumber, args.token);
+      accountsWithDdis.set(awsAccountNumber, {
+        awsAccountNumber: awsAccountNumber,
+        ddi: ddi
+      });
+      console.log(`Found DDI ${ddi} for account ${awsAccountNumber}`);
+    } catch (error) {
+      console.error(`Failed to find DDI for account ${awsAccountNumber}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      process.exit(1);
+    }
+  } else {
+    console.log(`AWS account ${awsAccountNumber} already associated with DDI ${accountsWithDdis.get(awsAccountNumber)!.ddi}`);
+  }
+}
 
-      console.log(`    Region: ${region}`);
+console.log(`\nTotal unique AWS accounts to process: ${accountsWithDdis.size}`);
+console.log(`Regions to test: ${args.regions.join(', ')}`);
 
-      const ec2 = new EC2Client({ region, credentials: creds });
+// Process each unique AWS account
+for (const accountInfo of accountsWithDdis.values()) {
+  console.log(`\n=== Processing AWS Account: ${accountInfo.awsAccountNumber} (DDI: ${accountInfo.ddi}) ===`);
 
-      // Find VPCs attached to TGW
-      const tgwVpcs = await findTgwVpcs(
-        ec2,
-        tgwId,
-        region,
-        account.awsAccountNumber
-      );
+  const creds = await getCreds(accountInfo.ddi, accountInfo.awsAccountNumber, args.token);
 
-      if (tgwVpcs.length === 0) {
-        console.log(`      No VPCs attached to ${tgwId}`);
-        continue;
-      }
+  for (const region of args.regions) {
+    const tgwId = TGW_MAP[region];
+    if (!tgwId) {
+      console.log(`  Skipping ${region}: No TGW configured`);
+      continue;
+    }
 
-      console.log(`      Found ${tgwVpcs.length} VPCs attached to TGW:`);
-      for (const vpc of tgwVpcs) {
-        console.log(`        - ${vpc.vpcId} (${vpc.vpcName})`);
-      }
+    console.log(`  Region: ${region}`);
 
-      // Find subnets routing to TGW (for reporting purposes)
-      const tgwSubnets = await findTgwSubnets(
-        ec2,
-        tgwId,
-        region,
-        account.awsAccountNumber
-      );
+    const ec2 = new EC2Client({ region, credentials: creds });
+
+    // Find VPCs attached to TGW
+    const tgwVpcs = await findTgwVpcs(
+      ec2,
+      tgwId,
+      region,
+      accountInfo.awsAccountNumber
+    );
+
+    if (tgwVpcs.length === 0) {
+      console.log(`    No VPCs attached to ${tgwId}`);
+      continue;
+    }
+
+    console.log(`    Found ${tgwVpcs.length} VPCs attached to TGW:`);
+    for (const vpc of tgwVpcs) {
+      console.log(`      - ${vpc.vpcId} (${vpc.vpcName})`);
+    }
+
+    // Find subnets routing to TGW (for reporting purposes)
+    const tgwSubnets = await findTgwSubnets(
+      ec2,
+      tgwId,
+      region,
+      accountInfo.awsAccountNumber
+    );
+    console.log(
+      `    Found ${tgwSubnets.length} subnets with routes to TGW`
+    );
+
+    // Find connectivity check lambdas
+    const lambdas = await findConnectivityLambdas(region, creds, ec2);
+    console.log(`    Found ${lambdas.length} connectivity check lambdas:`);
+    for (const lambda of lambdas) {
       console.log(
-        `      Found ${tgwSubnets.length} subnets with routes to TGW`
+        `      - ${lambda.functionName} in VPC ${
+          lambda.vpcId
+        } (subnets: ${lambda.subnetIds.join(', ')})`
       );
+    }
 
-      // Find connectivity check lambdas
-      const lambdas = await findConnectivityLambdas(region, creds, ec2);
-      console.log(`      Found ${lambdas.length} connectivity check lambdas:`);
-      for (const lambda of lambdas) {
+    // Filter lambdas that are in TGW VPCs
+    const tgwVpcIds = new Set(tgwVpcs.map((v) => v.vpcId));
+    const relevantLambdas = lambdas.filter(
+      (lambda) => lambda.vpcId && tgwVpcIds.has(lambda.vpcId)
+    );
+
+    console.log(
+      `    ${relevantLambdas.length} lambdas deployed in TGW VPCs`
+    );
+
+    // Invoke each lambda
+    for (const lambda of relevantLambdas) {
+      console.log(`      Testing ${lambda.functionName}...`);
+
+      // Get VPC name for reporting
+      const vpcInfo = tgwVpcs.find((v) => v.vpcId === lambda.vpcId);
+      const vpcName = vpcInfo?.vpcName || lambda.vpcId || 'unknown';
+
+      try {
+        const results = await invokeLambda(lambda, creds, TEST_TARGETS);
+
+        allResults.push({
+          lambda,
+          vpcName,
+          results,
+        });
+
+        const successCount = results.filter((r) => r.success).length;
         console.log(
-          `        - ${lambda.functionName} in VPC ${
-            lambda.vpcId
-          } (subnets: ${lambda.subnetIds.join(', ')})`
+          `        ${successCount}/${results.length} tests passed`
         );
-      }
+      } catch (err) {
+        console.log(
+          `        Error: ${
+            err instanceof Error ? err.message : 'Unknown error'
+          }`
+        );
 
-      // Filter lambdas that are in TGW VPCs
-      const tgwVpcIds = new Set(tgwVpcs.map((v) => v.vpcId));
-      const relevantLambdas = lambdas.filter(
-        (lambda) => lambda.vpcId && tgwVpcIds.has(lambda.vpcId)
-      );
-
-      console.log(
-        `      ${relevantLambdas.length} lambdas deployed in TGW VPCs`
-      );
-
-      // Invoke each lambda
-      for (const lambda of relevantLambdas) {
-        console.log(`        Testing ${lambda.functionName}...`);
-
-        // Get VPC name for reporting
-        const vpcInfo = tgwVpcs.find((v) => v.vpcId === lambda.vpcId);
-        const vpcName = vpcInfo?.vpcName || lambda.vpcId || 'unknown';
-
-        try {
-          const results = await invokeLambda(lambda, creds, TEST_TARGETS);
-
-          allResults.push({
-            lambda,
-            vpcName,
-            results,
-          });
-
-          const successCount = results.filter((r) => r.success).length;
-          console.log(
-            `          ${successCount}/${results.length} tests passed`
-          );
-        } catch (err) {
-          console.log(
-            `          Error: ${
-              err instanceof Error ? err.message : 'Unknown error'
-            }`
-          );
-
-          allResults.push({
-            lambda,
-            vpcName,
-            results: [],
-            error: err instanceof Error ? err.message : 'Unknown error',
-          });
-        }
+        allResults.push({
+          lambda,
+          vpcName,
+          results: [],
+          error: err instanceof Error ? err.message : 'Unknown error',
+        });
       }
     }
   }
 }
 
-// Output summary
 console.log('\n\n=== CONNECTIVITY TEST SUMMARY ===\n');
 
 const byRegion: Record<string, ConnectivityTestResult[]> = {};

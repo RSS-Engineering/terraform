@@ -61,14 +61,59 @@ npm install
 
 ## Usage
 
+The script now uses modern command-line argument parsing with named options:
+
+### Basic Usage
+
 ```bash
-node test-connectivity.ts <RACKSPACE_API_TOKEN> <DDI1> [DDI2] [DDI3] ...
+node test-connectivity.ts --token <RACKSPACE_API_TOKEN> [options]
 ```
 
-**Example:**
+### Required Arguments
+
+- `--token` or `-t`: Rackspace API token for fetching AWS credentials
+
+### Input Options (at least one required)
+
+- `--ddi <ddi>`: DDI number (can be specified multiple times)
+- `--awsAccountNumber <account>`: AWS account number (can be specified multiple times)
+
+### Optional Arguments
+
+- `--region <region>`: AWS region to test (can be specified multiple times, defaults to all configured regions)
+- `--help` or `-h`: Show help message
+
+### Examples
+
+**Test specific DDIs in default regions:**
 
 ```bash
-node test-connectivity.ts $(tok -nq racker) 12345 67890
+node test-connectivity.ts --token $(tok -nq racker) --ddi 12345 --ddi 67890
+```
+
+**Test specific AWS account numbers in specific regions:**
+
+```bash
+node test-connectivity.ts --token $(tok -nq racker) \
+  --awsAccountNumber 111111111111 \
+  --awsAccountNumber 222222222222 \
+  --region us-east-1 \
+  --region us-west-2
+```
+
+**Test both DDIs and account numbers:**
+
+```bash
+node test-connectivity.ts --token $(tok -nq racker) \
+  --ddi 12345 \
+  --awsAccountNumber 111111111111 \
+  --region us-west-2
+```
+
+**Get help:**
+
+```bash
+node test-connectivity.ts --help
 ```
 
 ## Output
@@ -108,3 +153,6 @@ Test Results:
 - **Lambda invocation fails**: Check Lambda has proper VPC networking permissions and security group rules
 - **No VPCs attached to TGW**: Verify Transit Gateway ID is correct for the region
 - **Authentication errors**: Verify Rackspace API token is valid and has access to specified DDIs
+- **Missing required arguments**: The script requires either `--ddi` or `--awsAccountNumber` options, and always requires `--token`
+- **Invalid input format**: DDI and AWS account numbers must contain only numeric characters (account numbers can start with 0)
+- **Credential access errors**: When using `--awsAccountNumber`, the script will automatically look up the associated DDI for credential access
