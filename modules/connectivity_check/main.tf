@@ -13,7 +13,7 @@ module "lambda" {
   version = "~> 7.0"
 
   function_name = var.function_name
-  description   = "Tests TCP and HTTPS connectivity from subnets: ${join(", ", var.subnet_ids)}"
+  description   = "Tests TCP and HTTPS connectivity"
   handler       = "index.handler"
   runtime       = "nodejs22.x"
   environment_variables = {
