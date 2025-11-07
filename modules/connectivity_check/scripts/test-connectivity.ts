@@ -46,7 +46,7 @@ interface LambdaInfo {
   functionArn: string;
   subnetIds: string[];
   region: string;
-  account: string;
+  account: AwsAccount;
   vpcId?: string;
   discoveryMethod?: 'tgw' | 'shared-subnet';
 }
@@ -77,8 +77,9 @@ interface ParsedArgs {
   token: string;
 }
 
-interface AccountWithDdi {
+interface AwsAccount {
   awsAccountNumber: string;
+  awsAccountName?: string;
   ddi: string;
 }
 
@@ -198,10 +199,10 @@ async function getAwsAccounts(ddi: string, token: string): Promise<any[]> {
   return data.awsAccounts;
 }
 
-async function findDDIForAccount(
+async function getAwsAccount(
   awsAccountNumber: string,
   token: string
-): Promise<string> {
+): Promise<any> {
   const res = await fetch(
     `https://accounts.api.manage.rackspace.com/v0/awsAccounts/search?criteria=${awsAccountNumber}`,
     {
@@ -237,7 +238,7 @@ async function findDDIForAccount(
     throw new Error(`DDI not found for AWS account ${awsAccountNumber}`);
   }
 
-  return matchingResult.awsAccount.ddi;
+  return matchingResult.awsAccount;
 }
 
 async function getCreds(
@@ -360,7 +361,8 @@ async function findTgwSubnets(
 async function findConnectivityLambdas(
   region: string,
   creds: RackspaceCredential,
-  ec2: EC2Client
+  ec2: EC2Client,
+  account: AwsAccount
 ): Promise<LambdaInfo[]> {
   const taggingClient = new ResourceGroupsTaggingAPIClient({
     region,
@@ -395,7 +397,6 @@ async function findConnectivityLambdas(
     );
 
     const subnetIds = fnConfig.Configuration?.VpcConfig?.SubnetIds || [];
-    const account = arnParts[4];
 
     if (subnetIds.length > 0) {
       const subnetDetails = await ec2.send(
@@ -489,7 +490,7 @@ const args = parseCliArgs();
 const allResults: ConnectivityTestResult[] = [];
 
 // Collect all unique AWS accounts with their associated DDIs
-const accountsWithDdis = new Map<string, AccountWithDdi>();
+const awsAccounts = new Map<string, AwsAccount>();
 
 // For each DDI, fetch associated AWS accounts and add to the map
 for (const ddi of args.ddis) {
@@ -498,8 +499,9 @@ for (const ddi of args.ddis) {
   console.log(`Found ${accounts.length} accounts for DDI ${ddi}`);
 
   for (const account of accounts) {
-    accountsWithDdis.set(account.awsAccountNumber, {
+    awsAccounts.set(account.awsAccountNumber, {
       awsAccountNumber: account.awsAccountNumber,
+      awsAccountName: account.name,
       ddi: ddi
     });
   }
@@ -507,32 +509,33 @@ for (const ddi of args.ddis) {
 
 // For direct AWS account numbers, look up their DDIs
 for (const awsAccountNumber of args.awsAccountNumbers) {
-  if (!accountsWithDdis.has(awsAccountNumber)) {
+  if (!awsAccounts.has(awsAccountNumber)) {
     console.log(`\nLooking up DDI for AWS account ${awsAccountNumber}...`);
     try {
-      const ddi = await findDDIForAccount(awsAccountNumber, args.token);
-      accountsWithDdis.set(awsAccountNumber, {
+      const awsAccount = await getAwsAccount(awsAccountNumber, args.token);
+      awsAccounts.set(awsAccountNumber, {
         awsAccountNumber: awsAccountNumber,
-        ddi: ddi
+        awsAccountName: awsAccount.name,
+        ddi: awsAccount.ddi
       });
-      console.log(`Found DDI ${ddi} for account ${awsAccountNumber}`);
+      console.log(`Found DDI ${awsAccount.ddi} for account ${awsAccountNumber}`);
     } catch (error) {
       console.error(`Failed to find DDI for account ${awsAccountNumber}: ${error instanceof Error ? error.message : 'Unknown error'}`);
       process.exit(1);
     }
   } else {
-    console.log(`AWS account ${awsAccountNumber} already associated with DDI ${accountsWithDdis.get(awsAccountNumber)!.ddi}`);
+    console.log(`AWS account ${awsAccountNumber} already associated with DDI ${awsAccounts.get(awsAccountNumber)!.ddi}`);
   }
 }
 
-console.log(`\nTotal unique AWS accounts to process: ${accountsWithDdis.size}`);
+console.log(`\nTotal unique AWS accounts to process: ${awsAccounts.size}`);
 console.log(`Regions to test: ${args.regions.join(', ')}`);
 
 // Process each unique AWS account
-for (const accountInfo of accountsWithDdis.values()) {
-  console.log(`\n=== Processing AWS Account: ${accountInfo.awsAccountNumber} (DDI: ${accountInfo.ddi}) ===`);
+for (const awsAccount of awsAccounts.values()) {
+  console.log(`\n=== Processing AWS Account: ${awsAccount.awsAccountNumber} (DDI: ${awsAccount.ddi}) ===`);
 
-  const creds = await getCreds(accountInfo.ddi, accountInfo.awsAccountNumber, args.token);
+  const creds = await getCreds(awsAccount.ddi, awsAccount.awsAccountNumber, args.token);
 
   for (const region of args.regions) {
     const tgwId = TGW_MAP[region];
@@ -550,7 +553,7 @@ for (const accountInfo of accountsWithDdis.values()) {
       ec2,
       tgwId,
       region,
-      accountInfo.awsAccountNumber
+      awsAccount.awsAccountNumber
     );
 
     // Get shared subnets for filtering
@@ -581,12 +584,12 @@ for (const accountInfo of accountsWithDdis.values()) {
       ec2,
       tgwId,
       region,
-      accountInfo.awsAccountNumber
+      awsAccount.awsAccountNumber
     );
     console.log(`    Found ${tgwSubnets.length} subnets with routes to TGW`);
 
     // Find all connectivity check lambdas in the region
-    const allLambdas = await findConnectivityLambdas(region, creds, ec2);
+    const allLambdas = await findConnectivityLambdas(region, creds, ec2, awsAccount);
     console.log(
       `    Found ${allLambdas.length} total connectivity check lambdas in region`
     );
@@ -710,7 +713,7 @@ for (const region of Object.keys(byRegion).sort()) {
     console.log(`\nLambda: ${result.lambda.functionName} (${method})`);
     console.log(`VPC: ${result.vpcName} (${result.lambda.vpcId})`);
     console.log(`Lambda Subnets: ${result.lambda.subnetIds.join(', ')}`);
-    console.log(`Account: ${result.lambda.account}`);
+    console.log(`Account: ${result.lambda.account.awsAccountNumber} (${result.lambda.account.awsAccountName})`);
 
     if (result.error) {
       console.log(`ERROR: ${result.error}`);
