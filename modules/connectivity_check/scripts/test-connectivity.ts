@@ -18,7 +18,13 @@ import {
   GetResourcesCommand,
 } from '@aws-sdk/client-resource-groups-tagging-api';
 
-import { TGW_MAP, TEST_TARGETS, REGIONS, type TestTarget } from './config.ts';
+import {
+  TGW_MAP,
+  TEST_TARGETS,
+  REGIONS,
+  SHARED_SUBNET_ACCOUNTS,
+  type TestTarget,
+} from './config.ts';
 
 interface RackspaceCredential {
   accessKeyId: string;
@@ -42,6 +48,7 @@ interface LambdaInfo {
   region: string;
   account: string;
   vpcId?: string;
+  discoveryMethod?: 'tgw' | 'shared-subnet';
 }
 
 interface TestResult {
@@ -85,7 +92,7 @@ function parseCliArgs(): ParsedArgs {
   const { values } = parseArgs({
     options: {
       ddi: { type: 'string', multiple: true },
-      'awsAccountNumber': { type: 'string', multiple: true },
+      'awsAccountNumber': { type: 'string', short: 'a', multiple: true },
       region: { type: 'string', multiple: true },
       token: { type: 'string', short: 't' },
       help: { type: 'boolean', short: 'h' },
@@ -143,7 +150,7 @@ Required:
 
 Input Options (at least one required):
   --ddi <ddi>                       DDI number (can be specified multiple times)
-  --awsAccountNumber <account>      AWS account number (can be specified multiple times)
+  -a, --awsAccountNumber <account>  AWS account number (can be specified multiple times)
 
 Optional:
   --region <region>                 AWS region to test (can be specified multiple times)
@@ -410,6 +417,34 @@ async function findConnectivityLambdas(
   return lambdas;
 }
 
+async function findSharedSubnets(ec2: EC2Client, region: string): Promise<string[]> {
+  const sharedSubnets: string[] = [];
+
+  for (const ownerId of SHARED_SUBNET_ACCOUNTS) {
+    try {
+      const subnets = await ec2.send(
+        new DescribeSubnetsCommand({
+          Filters: [{ Name: 'owner-id', Values: [ownerId] }],
+        })
+      );
+
+      for (const subnet of subnets.Subnets || []) {
+        if (subnet.SubnetId) {
+          sharedSubnets.push(subnet.SubnetId);
+        }
+      }
+    } catch (err) {
+      throw new Error(
+        `Failed to describe subnets for shared account ${ownerId} in region ${region}: ${
+          err instanceof Error ? err.message : 'Unknown error'
+        }`
+      );
+    }
+  }
+
+  return sharedSubnets;
+}
+
 async function invokeLambda(
   lambda: LambdaInfo,
   creds: RackspaceCredential,
@@ -518,14 +553,27 @@ for (const accountInfo of accountsWithDdis.values()) {
       accountInfo.awsAccountNumber
     );
 
-    if (tgwVpcs.length === 0) {
-      console.log(`    No VPCs attached to ${tgwId}`);
-      continue;
+    // Get shared subnets for filtering
+    const sharedSubnets = await findSharedSubnets(ec2, region);
+    if (sharedSubnets.length === 0) {
+      console.log(`    No shared subnets found in region`);
+    } else {
+      console.log(`    Found ${sharedSubnets.length} shared subnets in region`);
+      console.log(`    Shared Subnets: ${sharedSubnets.join(', ')}`);
     }
 
-    console.log(`    Found ${tgwVpcs.length} VPCs attached to TGW:`);
-    for (const vpc of tgwVpcs) {
-      console.log(`      - ${vpc.vpcId} (${vpc.vpcName})`);
+    if (tgwVpcs.length === 0) {
+      console.log(`    No VPCs attached to ${tgwId}`);
+    } else {
+      console.log(`    Found ${tgwVpcs.length} VPCs attached to TGW:`);
+      for (const vpc of tgwVpcs) {
+        console.log(`      - ${vpc.vpcId} (${vpc.vpcName})`);
+      }
+    }
+
+    if (tgwVpcs.length === 0 && sharedSubnets.length === 0) {
+      console.log(`    No TGW VPCs or shared subnets found; skipping region`);
+      continue;
     }
 
     // Find subnets routing to TGW (for reporting purposes)
@@ -535,38 +583,84 @@ for (const accountInfo of accountsWithDdis.values()) {
       region,
       accountInfo.awsAccountNumber
     );
+    console.log(`    Found ${tgwSubnets.length} subnets with routes to TGW`);
+
+    // Find all connectivity check lambdas in the region
+    const allLambdas = await findConnectivityLambdas(region, creds, ec2);
     console.log(
-      `    Found ${tgwSubnets.length} subnets with routes to TGW`
+      `    Found ${allLambdas.length} total connectivity check lambdas in region`
     );
 
-    // Find connectivity check lambdas
-    const lambdas = await findConnectivityLambdas(region, creds, ec2);
-    console.log(`    Found ${lambdas.length} connectivity check lambdas:`);
-    for (const lambda of lambdas) {
+    // Filter lambdas by TGW VPCs
+    const tgwVpcIds = new Set(tgwVpcs.map((v) => v.vpcId));
+    const tgwLambdas = allLambdas
+      .filter((lambda) => lambda.vpcId && tgwVpcIds.has(lambda.vpcId))
+      .map((lambda) => ({ ...lambda, discoveryMethod: 'tgw' as const }));
+
+    // Filter lambdas by shared subnets
+    const sharedSubnetLambdas = allLambdas
+      .filter((lambda) =>
+        lambda.subnetIds.some((subnetId) => sharedSubnets.includes(subnetId))
+      )
+      .map((lambda) => ({
+        ...lambda,
+        discoveryMethod: 'shared-subnet' as const,
+      }));
+
+    console.log(`    ${tgwLambdas.length} lambdas deployed in TGW VPCs`);
+    console.log(
+      `    ${sharedSubnetLambdas.length} lambdas deployed in shared subnets`
+    );
+
+    // Combine and deduplicate lambdas by ARN
+    const combinedLambdas = [...tgwLambdas, ...sharedSubnetLambdas];
+    const uniqueLambdas = combinedLambdas.reduce((acc, lambda) => {
+      if (
+        !acc.some((existing) => existing.functionArn === lambda.functionArn)
+      ) {
+        acc.push(lambda);
+      }
+      return acc;
+    }, [] as LambdaInfo[]);
+
+    console.log(`    Total unique lambdas to test: ${uniqueLambdas.length}`);
+
+    for (const lambda of uniqueLambdas) {
+      const method =
+        lambda.discoveryMethod === 'shared-subnet' ? '(shared)' : '(TGW)';
       console.log(
-        `      - ${lambda.functionName} in VPC ${
+        `      - ${lambda.functionName} ${method} in VPC ${
           lambda.vpcId
         } (subnets: ${lambda.subnetIds.join(', ')})`
       );
     }
 
-    // Filter lambdas that are in TGW VPCs
-    const tgwVpcIds = new Set(tgwVpcs.map((v) => v.vpcId));
-    const relevantLambdas = lambdas.filter(
-      (lambda) => lambda.vpcId && tgwVpcIds.has(lambda.vpcId)
-    );
-
-    console.log(
-      `    ${relevantLambdas.length} lambdas deployed in TGW VPCs`
-    );
-
     // Invoke each lambda
-    for (const lambda of relevantLambdas) {
-      console.log(`      Testing ${lambda.functionName}...`);
+    for (const lambda of uniqueLambdas) {
+      const method =
+        lambda.discoveryMethod === 'shared-subnet' ? '(shared)' : '(TGW)';
+      console.log(`      Testing ${lambda.functionName} ${method}...`);
 
       // Get VPC name for reporting
-      const vpcInfo = tgwVpcs.find((v) => v.vpcId === lambda.vpcId);
-      const vpcName = vpcInfo?.vpcName || lambda.vpcId || 'unknown';
+      let vpcName = lambda.vpcId || 'unknown';
+      if (lambda.discoveryMethod === 'tgw') {
+        const vpcInfo = tgwVpcs.find((v) => v.vpcId === lambda.vpcId);
+        vpcName = vpcInfo?.vpcName || lambda.vpcId || 'unknown';
+      } else {
+        // For shared subnet lambdas, try to get VPC name via EC2
+        if (lambda.vpcId) {
+          try {
+            const vpcDetails = await ec2.send(
+              new DescribeVpcsCommand({ VpcIds: [lambda.vpcId] })
+            );
+            vpcName =
+              vpcDetails.Vpcs?.[0]?.Tags?.find((t) => t.Key === 'Name')
+                ?.Value || lambda.vpcId;
+          } catch {
+            vpcName = lambda.vpcId;
+          }
+        }
+      }
 
       try {
         const results = await invokeLambda(lambda, creds, TEST_TARGETS);
@@ -578,9 +672,7 @@ for (const accountInfo of accountsWithDdis.values()) {
         });
 
         const successCount = results.filter((r) => r.success).length;
-        console.log(
-          `        ${successCount}/${results.length} tests passed`
-        );
+        console.log(`        ${successCount}/${results.length} tests passed`);
       } catch (err) {
         console.log(
           `        Error: ${
@@ -614,7 +706,8 @@ for (const region of Object.keys(byRegion).sort()) {
   console.log('='.repeat(50));
 
   for (const result of byRegion[region]) {
-    console.log(`\nLambda: ${result.lambda.functionName}`);
+    const method = result.lambda.discoveryMethod === 'shared-subnet' ? 'Shared Subnet' : 'TGW';
+    console.log(`\nLambda: ${result.lambda.functionName} (${method})`);
     console.log(`VPC: ${result.vpcName} (${result.lambda.vpcId})`);
     console.log(`Lambda Subnets: ${result.lambda.subnetIds.join(', ')}`);
     console.log(`Account: ${result.lambda.account}`);
