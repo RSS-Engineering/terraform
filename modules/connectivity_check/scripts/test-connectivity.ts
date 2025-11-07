@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 import { parseArgs } from 'node:util';
+import chalk from 'chalk';
 import {
   EC2Client,
   DescribeTransitGatewayVpcAttachmentsCommand,
@@ -75,6 +76,12 @@ interface ParsedArgs {
   awsAccountNumbers: string[];
   regions: string[];
   token: string;
+}
+
+interface CoverageGaps {
+  tgwVpcsWithoutLambdas: { vpcId: string; vpcName: string }[];
+  tgwSubnetsWithoutLambdas: { subnetId: string; cidr: string; vpcName: string }[];
+  sharedSubnetsWithoutLambdas: { [accountId: string]: { subnetId: string; cidr: string }[] };
 }
 
 interface AwsAccount {
@@ -446,6 +453,67 @@ async function findSharedSubnets(ec2: EC2Client, region: string): Promise<string
   return sharedSubnets;
 }
 
+function analyzeCoverageGaps(
+  tgwVpcs: { vpcId: string; vpcName: string }[],
+  tgwSubnets: SubnetInfo[],
+  sharedSubnets: string[],
+  lambdas: LambdaInfo[],
+): CoverageGaps {
+  const lambdaSubnetIds = new Set<string>();
+  lambdas.forEach(lambda => {
+    lambda.subnetIds.forEach(subnetId => lambdaSubnetIds.add(subnetId));
+  });
+
+  const lambdaVpcIds = new Set(lambdas.map(lambda => lambda.vpcId).filter(Boolean));
+  const tgwVpcsWithoutLambdas = tgwVpcs.filter(vpc => !lambdaVpcIds.has(vpc.vpcId));
+
+  const tgwSubnetsWithoutLambdas = tgwSubnets
+    .filter(subnet => !lambdaSubnetIds.has(subnet.subnetId))
+    .map(subnet => ({
+      subnetId: subnet.subnetId,
+      cidr: subnet.cidr,
+      vpcName: subnet.vpcName
+    }));
+
+  const sharedSubnetsWithoutLambdas: { [accountId: string]: { subnetId: string; cidr: string }[] } = {};
+  const uncoveredSharedSubnets = sharedSubnets.filter(subnetId => !lambdaSubnetIds.has(subnetId));
+
+  if (uncoveredSharedSubnets.length > 0) {
+    sharedSubnetsWithoutLambdas['shared'] = uncoveredSharedSubnets.map(subnetId => ({
+      subnetId,
+      cidr: 'unknown' // We'd need to fetch this
+    }));
+  }
+
+  return {
+    tgwVpcsWithoutLambdas,
+    tgwSubnetsWithoutLambdas,
+    sharedSubnetsWithoutLambdas
+  };
+}
+
+function logCoverageWarnings(gaps: CoverageGaps, region: string, accountNumber: string): void {
+  if (gaps.tgwVpcsWithoutLambdas.length > 0) {
+    console.log(chalk.yellow(`    ⚠️  ${gaps.tgwVpcsWithoutLambdas.length} TGW VPCs without connectivity lambdas:`));
+    gaps.tgwVpcsWithoutLambdas.forEach(vpc => {
+      console.log(chalk.yellow(`      - ${vpc.vpcId} (${vpc.vpcName})`));
+    });
+  }
+
+  if (gaps.tgwSubnetsWithoutLambdas.length > 0) {
+    console.log(chalk.yellow(`    ⚠️  ${gaps.tgwSubnetsWithoutLambdas.length} TGW subnets without connectivity lambdas:`));
+    gaps.tgwSubnetsWithoutLambdas.forEach(subnet => {
+      console.log(chalk.yellow(`      - ${subnet.subnetId} (${subnet.cidr}) in ${subnet.vpcName}`));
+    });
+  }
+
+  Object.entries(gaps.sharedSubnetsWithoutLambdas).forEach(([accountId, subnets]) => {
+    if (subnets.length > 0) {
+      console.log(chalk.yellow(`    ⚠️  ${subnets.length} shared subnets (account ${accountId}) without connectivity lambdas`));
+    }
+  });
+}
+
 async function invokeLambda(
   lambda: LambdaInfo,
   creds: RackspaceCredential,
@@ -488,6 +556,7 @@ async function invokeLambda(
 
 const args = parseCliArgs();
 const allResults: ConnectivityTestResult[] = [];
+const allCoverageGaps: CoverageGaps[] = [];
 
 // Collect all unique AWS accounts with their associated DDIs
 const awsAccounts = new Map<string, AwsAccount>();
@@ -561,7 +630,7 @@ for (const awsAccount of awsAccounts.values()) {
     if (sharedSubnets.length === 0) {
       console.log(`    No shared subnets found in region`);
     } else {
-      console.log(`    Found ${sharedSubnets.length} shared subnets in region`);
+      console.log(chalk.blue(`    🔗 Found ${sharedSubnets.length} shared subnets in region`));
       console.log(`    Shared Subnets: ${sharedSubnets.join(', ')}`);
     }
 
@@ -591,7 +660,7 @@ for (const awsAccount of awsAccounts.values()) {
     // Find all connectivity check lambdas in the region
     const allLambdas = await findConnectivityLambdas(region, creds, ec2, awsAccount);
     console.log(
-      `    Found ${allLambdas.length} total connectivity check lambdas in region`
+      chalk.blue(`    📋 Found ${allLambdas.length} total connectivity check lambdas in region`)
     );
 
     // Filter lambdas by TGW VPCs
@@ -638,6 +707,16 @@ for (const awsAccount of awsAccounts.values()) {
       );
     }
 
+    const coverageGaps = analyzeCoverageGaps(
+      tgwVpcs,
+      tgwSubnets,
+      sharedSubnets,
+      allLambdas
+    );
+
+    logCoverageWarnings(coverageGaps, region, awsAccount.awsAccountNumber);
+    allCoverageGaps.push(coverageGaps);
+
     // Invoke each lambda
     for (const lambda of uniqueLambdas) {
       const method =
@@ -675,12 +754,17 @@ for (const awsAccount of awsAccounts.values()) {
         });
 
         const successCount = results.filter((r) => r.success).length;
-        console.log(`        ${successCount}/${results.length} tests passed`);
+        const allPassed = successCount === results.length;
+        if (allPassed) {
+          console.log(chalk.green(`        ✓ ${successCount}/${results.length} tests passed`));
+        } else {
+          console.log(chalk.yellow(`        ⚠️  ${successCount}/${results.length} tests passed`));
+        }
       } catch (err) {
         console.log(
-          `        Error: ${
+          chalk.red(`        ❌ Error: ${
             err instanceof Error ? err.message : 'Unknown error'
-          }`
+          }`)
         );
 
         allResults.push({
@@ -716,19 +800,25 @@ for (const region of Object.keys(byRegion).sort()) {
     console.log(`Account: ${result.lambda.account.awsAccountNumber} (${result.lambda.account.awsAccountName})`);
 
     if (result.error) {
-      console.log(`ERROR: ${result.error}`);
+      console.log(chalk.red(`ERROR: ${result.error}`));
     } else {
       console.log('\nTest Results:');
       for (const test of result.results) {
-        const status = test.success ? '✓' : '✗';
         const details = test.success
           ? `${test.latencyMs}ms${
               test.httpStatus ? ` (HTTP ${test.httpStatus})` : ''
             }`
           : `${test.error} (${test.errorCode})`;
-        console.log(
-          `  ${status} ${test.protocol}://${test.host}:${test.port} - ${details}`
-        );
+
+        if (test.success) {
+          console.log(
+            chalk.green(`  ✓ ${test.protocol}://${test.host}:${test.port} - ${details}`)
+          );
+        } else {
+          console.log(
+            chalk.red(`  ✗ ${test.protocol}://${test.host}:${test.port} - ${details}`)
+          );
+        }
         if (test.resolvedIp) {
           console.log(`    Resolved to: ${test.resolvedIp}`);
         }
@@ -742,3 +832,18 @@ console.log(
     Object.keys(byRegion).length
   } regions`
 );
+
+const totalTgwVpcsWithoutLambdas = allCoverageGaps.reduce((sum, gaps) => sum + gaps.tgwVpcsWithoutLambdas.length, 0);
+const totalTgwSubnetsWithoutLambdas = allCoverageGaps.reduce((sum, gaps) => sum + gaps.tgwSubnetsWithoutLambdas.length, 0);
+const totalSharedSubnetsWithoutLambdas = allCoverageGaps.reduce((sum, gaps) => {
+  return sum + Object.values(gaps.sharedSubnetsWithoutLambdas).reduce((acc, subnets) => acc + subnets.length, 0);
+}, 0);
+
+if (totalTgwVpcsWithoutLambdas === 0 && totalTgwSubnetsWithoutLambdas === 0 && totalSharedSubnetsWithoutLambdas === 0) {
+  console.log(chalk.green('🎉 All networking resources have connectivity lambda coverage!'));
+} else {
+  console.log(chalk.yellow('\n\n=== COVERAGE GAPS SUMMARY ==='));
+  console.log(chalk.yellow(`TGW VPCs without lambdas: ${totalTgwVpcsWithoutLambdas}`));
+  console.log(chalk.yellow(`TGW subnets without lambdas: ${totalTgwSubnetsWithoutLambdas}`));
+  console.log(chalk.yellow(`Shared subnets without lambdas: ${totalSharedSubnetsWithoutLambdas}`));
+}
