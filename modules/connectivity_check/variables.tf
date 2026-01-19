@@ -30,3 +30,46 @@ variable "log_retention_days" {
   type        = number
   default     = 30
 }
+
+# Monitoring variables (defined in monitoring.tf but declared here for visibility)
+variable "enable_monitoring" {
+  description = "Enable scheduled monitoring and CloudWatch alarms"
+  type        = bool
+  default     = false
+}
+
+variable "monitoring_schedule" {
+  description = "EventBridge schedule expression for monitoring (e.g., 'rate(5 minutes)')"
+  type        = string
+  default     = "rate(5 minutes)"
+}
+
+variable "monitoring_targets" {
+  description = "List of targets to monitor"
+  type = list(object({
+    host     = string
+    port     = number
+    protocol = string
+    path     = optional(string)
+    critical = optional(bool, false)
+  }))
+  default = []
+}
+
+variable "alarm_sns_topic_arns" {
+  description = "List of SNS topic ARNs to send alarms to"
+  type        = list(string)
+  default     = []
+}
+
+variable "cloudwatch_namespace" {
+  description = "CloudWatch namespace for custom metrics"
+  type        = string
+  default     = "janus/connectivity"
+}
+
+variable "alarm_evaluation_periods" {
+  description = "Number of periods to evaluate for alarms"
+  type        = number
+  default     = 2
+}

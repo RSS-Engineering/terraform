@@ -1,11 +1,13 @@
 import { Socket } from 'node:net';
 import { lookup } from 'node:dns/promises';
+import { CloudWatchClient, PutMetricDataCommand } from '@aws-sdk/client-cloudwatch';
 
 interface TestTarget {
   host: string;
   port: number;
   protocol: 'tcp' | 'http' | 'https';
   path?: string;
+  critical?: boolean;
 }
 
 interface TestResult {
@@ -18,10 +20,14 @@ interface TestResult {
   error?: string;
   errorCode?: string;
   httpStatus?: number;
+  critical?: boolean;
 }
 
 interface LambdaEvent {
   targets: TestTarget[];
+  publishMetrics?: boolean;
+  cloudwatchNamespace?: string;
+  failOnConnectivityLoss?: boolean;
 }
 
 export const handler = async (event: LambdaEvent): Promise<TestResult[]> => {
@@ -33,22 +39,45 @@ export const handler = async (event: LambdaEvent): Promise<TestResult[]> => {
   const results: TestResult[] = [];
 
   for (const target of event.targets) {
+    let result: TestResult;
+    
     if (target.protocol === 'tcp') {
-      results.push(await testTcp(target));
+      result = await testTcp(target);
     } else if (target.protocol === 'http' || target.protocol === 'https') {
-      results.push(await testHttp(target));
+      result = await testHttp(target);
     } else {
-      results.push({
+      result = {
         host: target.host,
         port: target.port,
         protocol: target.protocol,
         success: false,
         error: `Unsupported protocol: ${target.protocol}`,
-      });
+        critical: target.critical,
+      };
     }
+    
+    // Include critical flag in result
+    result.critical = target.critical;
+    results.push(result);
   }
 
   console.log('Results:', JSON.stringify(results));
+
+  // Publish metrics to CloudWatch if enabled
+  if (event.publishMetrics) {
+    await publishMetrics(results, event.cloudwatchNamespace || 'ConnectivityCheck');
+  }
+
+  // Optionally fail the Lambda if critical endpoints are down
+  if (event.failOnConnectivityLoss) {
+    const criticalFailures = results.filter(r => r.critical && !r.success);
+    if (criticalFailures.length > 0) {
+      throw new Error(
+        `Critical connectivity failures: ${criticalFailures.map(r => `${r.host}:${r.port}`).join(', ')}`
+      );
+    }
+  }
+
   return results;
 };
 
@@ -209,4 +238,69 @@ async function testHttp(target: TestTarget): Promise<TestResult> {
       errorCode: err.code || err.cause?.code,
     };
   }
+}
+
+/**
+ * Publish connectivity metrics to CloudWatch
+ */
+async function publishMetrics(
+  results: TestResult[],
+  namespace: string
+): Promise<void> {
+  const cloudwatch = new CloudWatchClient({});
+  const functionName = process.env.AWS_LAMBDA_FUNCTION_NAME || 'unknown';
+  const timestamp = new Date();
+
+  const metricData = [];
+
+  for (const result of results) {
+    const endpoint = `${result.host}:${result.port}`;
+
+    // Connectivity metric (1 = success, 0 = failure)
+    metricData.push({
+      MetricName: 'EndpointConnectivity',
+      Dimensions: [
+        { Name: 'FunctionName', Value: functionName },
+        { Name: 'Endpoint', Value: endpoint },
+        { Name: 'Critical', Value: String(result.critical || false) },
+      ],
+      Value: result.success ? 1.0 : 0.0,
+      Unit: 'None',
+      Timestamp: timestamp,
+    });
+
+    // Response time metric
+    if (result.latencyMs !== undefined) {
+      metricData.push({
+        MetricName: 'EndpointLatency',
+        Dimensions: [
+          { Name: 'FunctionName', Value: functionName },
+          { Name: 'Endpoint', Value: endpoint },
+        ],
+        Value: result.latencyMs,
+        Unit: 'Milliseconds',
+        Timestamp: timestamp,
+      });
+    }
+  }
+
+  // Publish in batches of 20 (CloudWatch limit)
+  for (let i = 0; i < metricData.length; i += 20) {
+    const batch = metricData.slice(i, i + 20);
+    const command = new PutMetricDataCommand({
+      Namespace: namespace,
+      MetricData: batch,
+    });
+
+    try {
+      await cloudwatch.send(command);
+    } catch (err) {
+      console.error('Failed to publish metrics:', err);
+      // Don't fail the Lambda if metrics publishing fails
+    }
+  }
+
+  console.log(
+    `Published ${metricData.length} metrics to CloudWatch namespace: ${namespace}`
+  );
 }

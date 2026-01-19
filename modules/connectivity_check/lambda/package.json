@@ -5,7 +5,9 @@
   "engines": {
     "node": "~22"
   },
-  "dependencies": {},
+  "dependencies": {
+    "@aws-sdk/client-cloudwatch": "^3.0.0"
+  },
   "devDependencies": {
     "@types/node": "~22",
     "typescript": "~5"
