@@ -27,7 +27,6 @@ interface LambdaEvent {
   targets: TestTarget[];
   publishMetrics?: boolean;
   cloudwatchNamespace?: string;
-  failOnConnectivityLoss?: boolean;
 }
 
 export const handler = async (event: LambdaEvent): Promise<TestResult[]> => {
@@ -56,8 +55,6 @@ export const handler = async (event: LambdaEvent): Promise<TestResult[]> => {
       };
     }
     
-    // Include critical flag in result
-    result.critical = target.critical;
     results.push(result);
   }
 
@@ -66,16 +63,6 @@ export const handler = async (event: LambdaEvent): Promise<TestResult[]> => {
   // Publish metrics to CloudWatch if enabled
   if (event.publishMetrics) {
     await publishMetrics(results, event.cloudwatchNamespace || 'ConnectivityCheck');
-  }
-
-  // Optionally fail the Lambda if critical endpoints are down
-  if (event.failOnConnectivityLoss) {
-    const criticalFailures = results.filter(r => r.critical && !r.success);
-    if (criticalFailures.length > 0) {
-      throw new Error(
-        `Critical connectivity failures: ${criticalFailures.map(r => `${r.host}:${r.port}`).join(', ')}`
-      );
-    }
   }
 
   return results;
@@ -130,6 +117,7 @@ async function testTcp(target: TestTarget): Promise<TestResult> {
       success: false,
       error: `DNS resolution failed: ${dnsResult.error}`,
       errorCode: dnsResult.errorCode,
+      critical: target.critical,
     };
   }
 
@@ -148,6 +136,7 @@ async function testTcp(target: TestTarget): Promise<TestResult> {
         success: true,
         resolvedIp: dnsResult.ip,
         latencyMs: Date.now() - start,
+        critical: target.critical,
       });
     });
 
@@ -161,6 +150,7 @@ async function testTcp(target: TestTarget): Promise<TestResult> {
         resolvedIp: dnsResult.ip,
         error: 'Connection timeout (5s)',
         errorCode: 'ETIMEDOUT',
+        critical: target.critical,
       });
     });
 
@@ -174,6 +164,7 @@ async function testTcp(target: TestTarget): Promise<TestResult> {
         resolvedIp: dnsResult.ip,
         error: err.message,
         errorCode: err.code,
+        critical: target.critical,
       });
     });
 
@@ -194,6 +185,7 @@ async function testHttp(target: TestTarget): Promise<TestResult> {
       success: false,
       error: `DNS resolution failed: ${dnsResult.error}`,
       errorCode: dnsResult.errorCode,
+      critical: target.critical,
     };
   }
 
@@ -226,6 +218,7 @@ async function testHttp(target: TestTarget): Promise<TestResult> {
       resolvedIp: dnsResult.ip,
       latencyMs: Date.now() - start,
       httpStatus: response.status,
+      critical: target.critical,
     };
   } catch (err: any) {
     return {
@@ -236,6 +229,7 @@ async function testHttp(target: TestTarget): Promise<TestResult> {
       resolvedIp: dnsResult.ip,
       error: err.message,
       errorCode: err.code || err.cause?.code,
+      critical: target.critical,
     };
   }
 }

@@ -39,9 +39,9 @@ variable "enable_monitoring" {
 }
 
 variable "monitoring_schedule" {
-  description = "EventBridge schedule expression for monitoring (e.g., 'rate(5 minutes)')"
+  description = "EventBridge schedule expression for monitoring (e.g., 'rate(1 minute)')"
   type        = string
-  default     = "rate(5 minutes)"
+  default     = "rate(1 minute)"
 }
 
 variable "monitoring_targets" {
@@ -62,14 +62,15 @@ variable "alarm_sns_topic_arns" {
   default     = []
 }
 
-variable "cloudwatch_namespace" {
-  description = "CloudWatch namespace for custom metrics"
-  type        = string
-  default     = "janus/connectivity"
+# CloudWatch namespace is hard-coded to ensure consistency across all consumers
+# When metrics are exported to Datadog, this allows cross-account/cross-team dashboards
+# to aggregate metrics from all connectivity checks under a single namespace
+locals {
+  cloudwatch_namespace = "connectivity"
 }
 
 variable "alarm_evaluation_periods" {
   description = "Number of periods to evaluate for alarms"
   type        = number
-  default     = 2
+  default     = 3
 }

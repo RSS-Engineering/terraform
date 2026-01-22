@@ -1,48 +1,6 @@
 # Optional monitoring configuration for connectivity_check module
 # Enables scheduled checks and CloudWatch alarms
 
-variable "enable_monitoring" {
-  description = "Enable scheduled monitoring and CloudWatch alarms"
-  type        = bool
-  default     = false
-}
-
-variable "monitoring_schedule" {
-  description = "EventBridge schedule expression for monitoring (e.g., 'rate(5 minutes)')"
-  type        = string
-  default     = "rate(5 minutes)"
-}
-
-variable "monitoring_targets" {
-  description = "List of targets to monitor"
-  type = list(object({
-    host     = string
-    port     = number
-    protocol = string
-    path     = optional(string)
-    critical = optional(bool, false)
-  }))
-  default = []
-}
-
-variable "alarm_sns_topic_arns" {
-  description = "List of SNS topic ARNs to send alarms to"
-  type        = list(string)
-  default     = []
-}
-
-variable "cloudwatch_namespace" {
-  description = "CloudWatch namespace for custom metrics"
-  type        = string
-  default     = "janus/connectivity"
-}
-
-variable "alarm_evaluation_periods" {
-  description = "Number of periods to evaluate for alarms"
-  type        = number
-  default     = 2
-}
-
 # EventBridge schedule for periodic monitoring
 resource "aws_cloudwatch_event_rule" "monitoring_schedule" {
   count               = var.enable_monitoring ? 1 : 0
@@ -57,10 +15,9 @@ resource "aws_cloudwatch_event_target" "monitoring" {
   rule  = aws_cloudwatch_event_rule.monitoring_schedule[0].name
   arn   = module.lambda.lambda_function_arn
   input = jsonencode({
-    targets                = var.monitoring_targets
-    publishMetrics         = true
-    cloudwatchNamespace    = var.cloudwatch_namespace
-    failOnConnectivityLoss = false  # Don't fail Lambda, just publish metrics
+    targets             = var.monitoring_targets
+    publishMetrics      = true
+    cloudwatchNamespace = local.cloudwatch_namespace
   })
 }
 
@@ -90,7 +47,7 @@ resource "aws_iam_policy" "cloudwatch_metrics" {
         Resource = "*"
         Condition = {
           StringEquals = {
-            "cloudwatch:namespace" = var.cloudwatch_namespace
+            "cloudwatch:namespace" = local.cloudwatch_namespace
           }
         }
       }
@@ -112,7 +69,7 @@ resource "aws_cloudwatch_metric_alarm" "lambda_errors" {
   evaluation_periods  = var.alarm_evaluation_periods
   metric_name         = "Errors"
   namespace           = "AWS/Lambda"
-  period              = 300
+  period              = 60
   statistic           = "Sum"
   threshold           = 0
   alarm_description   = "Connectivity check Lambda is failing"
@@ -130,6 +87,8 @@ resource "aws_cloudwatch_metric_alarm" "lambda_errors" {
 
 # CloudWatch alarms for critical endpoint failures
 # Creates one alarm per critical target
+# Only created when SNS topics are configured (for direct CloudWatch alerting)
+# When using Datadog for monitoring, these can be skipped by leaving alarm_sns_topic_arns empty
 resource "aws_cloudwatch_metric_alarm" "critical_endpoint_failure" {
   for_each = var.enable_monitoring && length(var.alarm_sns_topic_arns) > 0 ? {
     for target in var.monitoring_targets : "${target.host}:${target.port}" => target
@@ -140,8 +99,8 @@ resource "aws_cloudwatch_metric_alarm" "critical_endpoint_failure" {
   comparison_operator = "LessThanThreshold"
   evaluation_periods  = var.alarm_evaluation_periods
   metric_name         = "EndpointConnectivity"
-  namespace           = var.cloudwatch_namespace
-  period              = 300
+  namespace           = local.cloudwatch_namespace
+  period              = 60
   statistic           = "Minimum"
   threshold           = 1
   alarm_description   = "CRITICAL: ${each.value.host}:${each.value.port} is unreachable"
@@ -160,14 +119,15 @@ resource "aws_cloudwatch_metric_alarm" "critical_endpoint_failure" {
 }
 
 # Aggregate alarm for any critical endpoint failure
+# Only created when SNS topics are configured (for direct CloudWatch alerting)
 resource "aws_cloudwatch_metric_alarm" "any_critical_failure" {
   count               = var.enable_monitoring && length(var.alarm_sns_topic_arns) > 0 && length([for t in var.monitoring_targets : t if try(t.critical, false)]) > 0 ? 1 : 0
   alarm_name          = "${var.function_name}-any-critical-failure"
   comparison_operator = "LessThanThreshold"
   evaluation_periods  = var.alarm_evaluation_periods
   metric_name         = "EndpointConnectivity"
-  namespace           = var.cloudwatch_namespace
-  period              = 300
+  namespace           = local.cloudwatch_namespace
+  period              = 60
   statistic           = "Minimum"
   threshold           = 1
   alarm_description   = "One or more critical endpoints are unreachable"
