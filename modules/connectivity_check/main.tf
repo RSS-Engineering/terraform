@@ -16,15 +16,26 @@ module "lambda" {
   description   = "Tests TCP and HTTPS connectivity"
   handler       = "index.handler"
   runtime       = "nodejs22.x"
-  environment_variables = {
-    NODE_OPTIONS = "--experimental-strip-types --experimental-transform-types"
-  }
+  
+  layers = var.enable_monitoring ? [
+    "arn:aws:lambda:${data.aws_region.current.name}:901920570463:layer:aws-otel-nodejs-amd64-ver-1-7-0:2"
+  ] : []
+  
+  environment_variables = merge(
+    {
+      NODE_OPTIONS = "--experimental-strip-types --experimental-transform-types"
+    },
+    var.enable_monitoring ? {
+      AWS_LAMBDA_EXEC_WRAPPER = "/opt/otel-handler"
+      DATADOG_API_KEY         = var.datadog_api_key
+      JANUS_ENVIRONMENT       = var.janus_environment
+    } : {}
+  )
 
   source_path = [
     {
-      path = "${path.module}/lambda"
-      # lambda has no npm dependencies, so this can be skipped
-      npm_requirements = false
+      path             = "${path.module}/lambda"
+      npm_requirements = true
     }
   ]
 
@@ -42,3 +53,5 @@ module "lambda" {
     connectivity_check_version = "v1"
   }
 }
+
+data "aws_region" "current" {}

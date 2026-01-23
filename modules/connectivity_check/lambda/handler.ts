@@ -1,6 +1,8 @@
 import { Socket } from 'node:net';
 import { lookup } from 'node:dns/promises';
-import { CloudWatchClient, PutMetricDataCommand } from '@aws-sdk/client-cloudwatch';
+
+const stats = require('@janus.team/janus-core/lib/stats');
+const log = require('@janus.team/janus-core/lib/log');
 
 interface TestTarget {
   host: string;
@@ -25,47 +27,62 @@ interface TestResult {
 
 interface LambdaEvent {
   targets: TestTarget[];
-  publishMetrics?: boolean;
-  cloudwatchNamespace?: string;
 }
 
 export const handler = async (event: LambdaEvent): Promise<TestResult[]> => {
-  console.log(
-    'Testing connectivity for targets:',
-    JSON.stringify(event.targets)
-  );
+  const env = process.env.JANUS_ENVIRONMENT || 'unknown';
+  
+  log.initialize('connectivity-check', {
+    level: env === 'local' ? 'debug' : 'info'
+  });
 
-  const results: TestResult[] = [];
+  try {
+    // Initialize Datadog stats
+    await stats.initializeWithDriver('http', 'connectivity.', {
+      defaultTags: [
+        `env:${env}`,
+        'service:connectivity-check'
+      ],
+      mock: ['local', 'test'].includes(env)
+    });
 
-  for (const target of event.targets) {
-    let result: TestResult;
-    
-    if (target.protocol === 'tcp') {
-      result = await testTcp(target);
-    } else if (target.protocol === 'http' || target.protocol === 'https') {
-      result = await testHttp(target);
-    } else {
-      result = {
-        host: target.host,
-        port: target.port,
-        protocol: target.protocol,
-        success: false,
-        error: `Unsupported protocol: ${target.protocol}`,
-        critical: target.critical,
-      };
+    log.info(
+      { targetCount: event.targets.length },
+      'Testing connectivity for targets'
+    );
+
+    const results: TestResult[] = [];
+
+    for (const target of event.targets) {
+      let result: TestResult;
+      
+      if (target.protocol === 'tcp') {
+        result = await testTcp(target);
+      } else if (target.protocol === 'http' || target.protocol === 'https') {
+        result = await testHttp(target);
+      } else {
+        result = {
+          host: target.host,
+          port: target.port,
+          protocol: target.protocol,
+          success: false,
+          error: `Unsupported protocol: ${target.protocol}`,
+          critical: target.critical,
+        };
+      }
+      
+      results.push(result);
+
+      // Publish metrics to Datadog
+      publishMetrics(result);
     }
-    
-    results.push(result);
+
+    log.info({ successCount: results.filter(r => r.success).length, totalCount: results.length }, 'Connectivity check complete');
+
+    return results;
+  } finally {
+    await stats.close();
   }
-
-  console.log('Results:', JSON.stringify(results));
-
-  // Publish metrics to CloudWatch if enabled
-  if (event.publishMetrics) {
-    await publishMetrics(results, event.cloudwatchNamespace || 'ConnectivityCheck');
-  }
-
-  return results;
 };
 
 function isIpAddress(host: string): boolean {
@@ -201,14 +218,14 @@ async function testHttp(target: TestTarget): Promise<TestResult> {
 
     // Log response details
     const headers = Object.fromEntries(response.headers.entries());
-    console.log(`Response headers for ${url}:`, JSON.stringify(headers));
+    log.debug({ url, headers }, 'HTTP response headers');
 
     const bodyText = await response.text();
     const truncatedBody =
       bodyText.length > 100
         ? bodyText.substring(0, 100) + '...(truncated)'
         : bodyText;
-    console.log(`Response body for ${url}:`, truncatedBody);
+    log.debug({ url, body: truncatedBody }, 'HTTP response body');
 
     return {
       host: target.host,
@@ -235,66 +252,32 @@ async function testHttp(target: TestTarget): Promise<TestResult> {
 }
 
 /**
- * Publish connectivity metrics to CloudWatch
+ * Publish connectivity metrics to Datadog via janus-core stats
  */
-async function publishMetrics(
-  results: TestResult[],
-  namespace: string
-): Promise<void> {
-  const cloudwatch = new CloudWatchClient({});
-  const functionName = process.env.AWS_LAMBDA_FUNCTION_NAME || 'unknown';
-  const timestamp = new Date();
+function publishMetrics(result: TestResult): void {
+  const endpoint = `${result.host}:${result.port}`;
+  const tags = [
+    `endpoint:${endpoint}`,
+    `host:${result.host}`,
+    `protocol:${result.protocol}`,
+    `critical:${result.critical || false}`,
+  ];
 
-  const metricData = [];
+  // Connectivity status metric (1 = success, 0 = failure)
+  stats.gauge('endpoint.status', result.success ? 1 : 0, tags);
 
-  for (const result of results) {
-    const endpoint = `${result.host}:${result.port}`;
-
-    // Connectivity metric (1 = success, 0 = failure)
-    metricData.push({
-      MetricName: 'EndpointConnectivity',
-      Dimensions: [
-        { Name: 'FunctionName', Value: functionName },
-        { Name: 'Endpoint', Value: endpoint },
-        { Name: 'Critical', Value: String(result.critical || false) },
-      ],
-      Value: result.success ? 1.0 : 0.0,
-      Unit: 'None',
-      Timestamp: timestamp,
-    });
-
-    // Response time metric
-    if (result.latencyMs !== undefined) {
-      metricData.push({
-        MetricName: 'EndpointLatency',
-        Dimensions: [
-          { Name: 'FunctionName', Value: functionName },
-          { Name: 'Endpoint', Value: endpoint },
-        ],
-        Value: result.latencyMs,
-        Unit: 'Milliseconds',
-        Timestamp: timestamp,
-      });
-    }
+  // Response time metric
+  if (result.latencyMs !== undefined) {
+    stats.gauge('endpoint.latency', result.latencyMs, tags);
   }
 
-  // Publish in batches of 20 (CloudWatch limit)
-  for (let i = 0; i < metricData.length; i += 20) {
-    const batch = metricData.slice(i, i + 20);
-    const command = new PutMetricDataCommand({
-      Namespace: namespace,
-      MetricData: batch,
-    });
-
-    try {
-      await cloudwatch.send(command);
-    } catch (err) {
-      console.error('Failed to publish metrics:', err);
-      // Don't fail the Lambda if metrics publishing fails
+  // Count metrics for success/failure
+  if (result.success) {
+    stats.increment('endpoint.success.count', 1, tags);
+  } else {
+    stats.increment('endpoint.error.count', 1, tags);
+    if (result.errorCode) {
+      stats.increment('endpoint.error.count', 1, [...tags, `error_code:${result.errorCode}`]);
     }
   }
-
-  console.log(
-    `Published ${metricData.length} metrics to CloudWatch namespace: ${namespace}`
-  );
 }

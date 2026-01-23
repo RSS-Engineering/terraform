@@ -1,12 +1,12 @@
 {
   "name": "connectivity-check-lambda",
   "version": "1.0.0",
-  "type": "module",
+  "type": "commonjs",
   "engines": {
     "node": "~22"
   },
   "dependencies": {
-    "@aws-sdk/client-cloudwatch": "^3.0.0"
+    "@janus.team/janus-core": "^3.0.0"
   },
   "devDependencies": {
     "@types/node": "~22",

@@ -31,9 +31,9 @@ variable "log_retention_days" {
   default     = 30
 }
 
-# Monitoring variables (defined in monitoring.tf but declared here for visibility)
+# Monitoring variables
 variable "enable_monitoring" {
-  description = "Enable scheduled monitoring and CloudWatch alarms"
+  description = "Enable scheduled monitoring with Datadog metrics"
   type        = bool
   default     = false
 }
@@ -56,21 +56,15 @@ variable "monitoring_targets" {
   default = []
 }
 
-variable "alarm_sns_topic_arns" {
-  description = "List of SNS topic ARNs to send alarms to"
-  type        = list(string)
-  default     = []
+variable "datadog_api_key" {
+  description = "Datadog API key for publishing metrics (required when enable_monitoring = true)"
+  type        = string
+  default     = ""
+  sensitive   = true
 }
 
-# CloudWatch namespace is hard-coded to ensure consistency across all consumers
-# When metrics are exported to Datadog, this allows cross-account/cross-team dashboards
-# to aggregate metrics from all connectivity checks under a single namespace
-locals {
-  cloudwatch_namespace = "connectivity"
-}
-
-variable "alarm_evaluation_periods" {
-  description = "Number of periods to evaluate for alarms"
-  type        = number
-  default     = 3
+variable "janus_environment" {
+  description = "Janus environment name (e.g., 'dev', 'prod')"
+  type        = string
+  default     = "unknown"
 }
