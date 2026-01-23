@@ -7,7 +7,10 @@ resource "aws_cloudwatch_event_rule" "monitoring_schedule" {
   name                = "${var.function_name}-schedule"
   description         = "Run connectivity checks on schedule"
   schedule_expression = var.monitoring_schedule
-  tags                = module.lambda.lambda_function_tags
+  tags = {
+    connectivity_check         = "true"
+    connectivity_check_version = "v1"
+  }
 }
 
 resource "aws_cloudwatch_event_target" "monitoring" {
