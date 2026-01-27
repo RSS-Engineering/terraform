@@ -18,11 +18,11 @@ jobs:
         with:
           node-version: '22'
           registry-url: 'https://npm.pkg.github.com'
-          scope: '@janus.team'
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.JANUS_NPM_TOKEN }}
+          scope: '@racker'
       
       - name: Build Lambda package
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.JANUS_NPM_TOKEN }}
         run: |
           chmod +x modules/connectivity_check/scripts/build-lambda.sh
           modules/connectivity_check/scripts/build-lambda.sh

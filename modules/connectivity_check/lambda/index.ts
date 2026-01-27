@@ -1,8 +1,8 @@
 import { Socket } from 'node:net';
 import { lookup } from 'node:dns/promises';
 
-const stats = require('@janus.team/janus-core/lib/stats');
-const log = require('@janus.team/janus-core/lib/log');
+const stats = require('@racker/janus-core/lib/stats');
+const log = require('@racker/janus-core/lib/log');
 
 interface TestTarget {
   host: string;

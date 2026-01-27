@@ -6,7 +6,7 @@
     "node": "~22"
   },
   "dependencies": {
-    "@janus.team/janus-core": "^3.0.0"
+    "@racker/janus-core": "^3.0.0"
   },
   "devDependencies": {
     "@types/node": "~22",
