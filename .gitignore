@@ -8,3 +8,6 @@ modules/lambda-layer-deps/examples/*/builds
 modules/lambda-layer-deps/examples/*/node_modules
 modules/lambda-layer-deps/examples/*/package.log
 .DS_Store
+
+# Allow pre-built Lambda packages
+!modules/connectivity_check/lambda.zip

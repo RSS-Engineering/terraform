@@ -17,6 +17,10 @@ module "lambda" {
   handler       = "index.handler"
   runtime       = "nodejs22.x"
   
+  # Use pre-built Lambda package
+  create_package         = false
+  local_existing_package = "${path.module}/lambda.zip"
+  
   layers = var.enable_monitoring ? [
     "arn:aws:lambda:${data.aws_region.current.name}:901920570463:layer:aws-otel-nodejs-amd64-ver-1-7-0:2"
   ] : []
@@ -31,13 +35,6 @@ module "lambda" {
       JANUS_ENVIRONMENT       = var.janus_environment
     } : {}
   )
-
-  source_path = [
-    {
-      path             = "${path.module}/lambda"
-      npm_requirements = true
-    }
-  ]
 
   timeout     = var.timeout
   memory_size = var.memory_size
