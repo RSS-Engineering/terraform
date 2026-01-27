@@ -17,9 +17,10 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '22'
-      
-      - name: Configure npm authentication
-        run: echo "//registry.npmjs.org/:_authToken=${{ secrets.JANUS_NPM_TOKEN }}" > ~/.npmrc
+          registry-url: 'https://npm.pkg.github.com'
+          scope: '@janus.team'
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.JANUS_NPM_TOKEN }}
       
       - name: Build Lambda package
         run: |
