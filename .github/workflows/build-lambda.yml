@@ -19,7 +19,7 @@ jobs:
           node-version: '22'
       
       - name: Configure npm authentication
-        run: echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}" > ~/.npmrc
+        run: echo "//registry.npmjs.org/:_authToken=${{ secrets.JANUS_NPM_TOKEN }}" > ~/.npmrc
       
       - name: Build Lambda package
         run: |
