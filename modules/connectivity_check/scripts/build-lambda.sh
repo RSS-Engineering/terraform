@@ -19,14 +19,24 @@ mkdir -p "$BUILD_DIR"
 # Copy Lambda source files
 cp "$LAMBDA_DIR/index.ts" "$BUILD_DIR/"
 cp "$LAMBDA_DIR/package.json" "$BUILD_DIR/"
+cp "$LAMBDA_DIR/tsconfig.json" "$BUILD_DIR/"
+cp "$LAMBDA_DIR/.npmrc" "$BUILD_DIR/"
 
-# Install production dependencies
+# Install all dependencies (including devDependencies for TypeScript compilation)
 cd "$BUILD_DIR"
-npm install --production --no-package-lock
+npm install --no-package-lock
 
-# Create zip with handler and node_modules
+# Compile TypeScript to JavaScript
+echo "Compiling TypeScript..."
+npx tsc
+
+# Remove TypeScript source and dev dependencies
+rm -f index.ts tsconfig.json
+npm prune --production
+
+# Create zip with compiled handler and node_modules
 cd "$BUILD_DIR"
-zip -r "$OUTPUT_ZIP" index.ts node_modules/
+zip -r "$OUTPUT_ZIP" index.js node_modules/
 
 echo "Lambda package created: $OUTPUT_ZIP"
 echo "Size: $(du -h "$OUTPUT_ZIP" | cut -f1)"
