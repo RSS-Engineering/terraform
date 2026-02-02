@@ -22,7 +22,7 @@ jobs:
       
       - name: Build Lambda package
         env:
-          NODE_AUTH_TOKEN: ${{ secrets.JANUS_NPM_TOKEN }}
+          NODE_AUTH_TOKEN: ${{ secrets.JANUS_GITHUB_PAT }}
         run: |
           chmod +x modules/connectivity_check/scripts/build-lambda.sh
           modules/connectivity_check/scripts/build-lambda.sh
