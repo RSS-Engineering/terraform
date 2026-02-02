@@ -16,7 +16,7 @@ variable "function_name" {
 variable "timeout" {
   description = "Lambda function timeout in seconds"
   type        = number
-  default     = 10
+  default     = 60
 }
 
 variable "memory_size" {
