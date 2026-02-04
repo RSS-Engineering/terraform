@@ -51,9 +51,8 @@ export const handler = async (event: LambdaEvent): Promise<TestResult[]> => {
       'Testing connectivity for targets'
     );
 
-    const results: TestResult[] = [];
-
-    for (const target of event.targets) {
+    // Run all connectivity checks in parallel for faster execution
+    const checkPromises = event.targets.map(async (target) => {
       let result: TestResult;
       
       if (target.protocol === 'tcp') {
@@ -71,11 +70,14 @@ export const handler = async (event: LambdaEvent): Promise<TestResult[]> => {
         };
       }
       
-      results.push(result);
+      return result;
+    });
 
-      // Publish metrics to Datadog
-      publishMetrics(result);
-    }
+    // Wait for all checks to complete
+    const results = await Promise.all(checkPromises);
+
+    // Publish metrics to Datadog for all results
+    results.forEach(result => publishMetrics(result));
 
     log.info({ successCount: results.filter(r => r.success).length, totalCount: results.length }, 'Connectivity check complete');
 
