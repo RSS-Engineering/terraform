@@ -30,6 +30,11 @@ npm install --no-package-lock
 echo "Compiling TypeScript..."
 npx tsc
 
+# Fix ES module imports - add /index.js to janus-core subpath imports
+echo "Fixing ES module imports..."
+sed -i "s|from '@racker/janus-core/lib/stats'|from '@racker/janus-core/lib/stats/index.js'|g" index.js
+sed -i "s|from '@racker/janus-core/lib/log'|from '@racker/janus-core/lib/log/index.js'|g" index.js
+
 # Remove TypeScript source and dev dependencies
 rm -f index.ts tsconfig.json
 npm prune --production
