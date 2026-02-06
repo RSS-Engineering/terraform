@@ -32,7 +32,8 @@ module "lambda" {
     var.enable_monitoring ? {
       AWS_LAMBDA_EXEC_WRAPPER = "/opt/otel-handler"
       DATADOG_API_KEY         = var.datadog_api_key
-      JANUS_ENVIRONMENT       = var.janus_environment
+      ENVIRONMENT             = var.environment
+      METRIC_TAGS             = var.metric_tags
     } : {}
   )
 

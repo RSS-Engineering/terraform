@@ -63,8 +63,14 @@ variable "datadog_api_key" {
   sensitive   = true
 }
 
-variable "janus_environment" {
-  description = "Janus environment name (e.g., 'dev', 'prod')"
+variable "environment" {
+  description = "Environment name (e.g., 'dev', 'prod')"
   type        = string
   default     = "unknown"
+}
+
+variable "metric_tags" {
+  description = "Additional tags to include in Datadog metrics (comma-separated string, e.g., 'team:platform,region:us-west-2')"
+  type        = string
+  default     = ""
 }

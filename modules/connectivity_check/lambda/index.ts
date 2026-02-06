@@ -1,8 +1,7 @@
 import { Socket } from 'node:net';
 import { lookup } from 'node:dns/promises';
-
-const stats = require('@racker/janus-core/lib/stats');
-const log = require('@racker/janus-core/lib/log');
+import * as stats from '@racker/janus-core/lib/stats';
+import * as log from '@racker/janus-core/lib/log';
 
 interface TestTarget {
   host: string;
@@ -30,18 +29,24 @@ interface LambdaEvent {
 }
 
 export const handler = async (event: LambdaEvent): Promise<TestResult[]> => {
-  const env = process.env.JANUS_ENVIRONMENT || 'unknown';
+  const env = process.env.ENVIRONMENT || 'unknown';
   
   log.initialize('connectivity-check', {
     level: env === 'local' ? 'debug' : 'info'
   });
 
   try {
+    // Parse additional metric tags from environment variable
+    const additionalTags = process.env.METRIC_TAGS 
+      ? process.env.METRIC_TAGS.split(',').map(tag => tag.trim())
+      : [];
+
     // Initialize Datadog stats
     await stats.initializeWithDriver('http', 'connectivity.', {
       defaultTags: [
         `env:${env}`,
-        'service:connectivity-check'
+        'service:connectivity-check',
+        ...additionalTags
       ],
       mock: ['local', 'test'].includes(env)
     });
@@ -268,9 +273,9 @@ function publishMetrics(result: TestResult): void {
   // Connectivity status metric (1 = success, 0 = failure)
   stats.gauge('endpoint.status', result.success ? 1 : 0, tags);
 
-  // Response time metric
+  // Response time metric (using timing for latency measurements)
   if (result.latencyMs !== undefined) {
-    stats.gauge('endpoint.latency', result.latencyMs, tags);
+    stats.timing('endpoint.latency', result.latencyMs, tags);
   }
 
   // Count metrics for success/failure

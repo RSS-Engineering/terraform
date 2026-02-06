@@ -2,11 +2,12 @@
 # Enables scheduled checks with Datadog metrics
 
 # EventBridge schedule for periodic monitoring
+# Always created, but enabled/disabled based on var.enable_monitoring
 resource "aws_cloudwatch_event_rule" "monitoring_schedule" {
-  count               = var.enable_monitoring ? 1 : 0
   name                = "${var.function_name}-schedule"
   description         = "Run connectivity checks on schedule"
   schedule_expression = var.monitoring_schedule
+  state               = var.enable_monitoring ? "ENABLED" : "DISABLED"
   tags = {
     connectivity_check         = "true"
     connectivity_check_version = "v1"
@@ -14,8 +15,7 @@ resource "aws_cloudwatch_event_rule" "monitoring_schedule" {
 }
 
 resource "aws_cloudwatch_event_target" "monitoring" {
-  count = var.enable_monitoring ? 1 : 0
-  rule  = aws_cloudwatch_event_rule.monitoring_schedule[0].name
+  rule  = aws_cloudwatch_event_rule.monitoring_schedule.name
   arn   = module.lambda.lambda_function_arn
   input = jsonencode({
     targets = var.monitoring_targets
@@ -23,10 +23,9 @@ resource "aws_cloudwatch_event_target" "monitoring" {
 }
 
 resource "aws_lambda_permission" "allow_eventbridge" {
-  count         = var.enable_monitoring ? 1 : 0
   statement_id  = "AllowExecutionFromEventBridge"
   action        = "lambda:InvokeFunction"
   function_name = module.lambda.lambda_function_name
   principal     = "events.amazonaws.com"
-  source_arn    = aws_cloudwatch_event_rule.monitoring_schedule[0].arn
+  source_arn    = aws_cloudwatch_event_rule.monitoring_schedule.arn
 }
