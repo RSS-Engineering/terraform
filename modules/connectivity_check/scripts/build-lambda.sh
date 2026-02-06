@@ -34,9 +34,9 @@ npx tsc
 rm -f index.ts tsconfig.json
 npm prune --production
 
-# Create zip with compiled handler and node_modules
+# Create zip with compiled handler, package.json, and node_modules
 cd "$BUILD_DIR"
-zip -r "$OUTPUT_ZIP" index.js node_modules/
+zip -r "$OUTPUT_ZIP" index.js package.json node_modules/
 
 echo "Lambda package created: $OUTPUT_ZIP"
 echo "Size: $(du -h "$OUTPUT_ZIP" | cut -f1)"
