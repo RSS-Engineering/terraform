@@ -1,7 +1,7 @@
 import { Socket } from 'net';
 import { lookup } from 'dns/promises';
-import stats from '@racker/janus-core/lib/stats/index.js';
-import log from '@racker/janus-core/lib/log/index.js';
+import stats from '@racker/janus-core/lib/stats';
+import log from '@racker/janus-core/lib/log';
 
 interface TestTarget {
   host: string;
