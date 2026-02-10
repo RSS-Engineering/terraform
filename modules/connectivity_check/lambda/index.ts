@@ -1,7 +1,7 @@
-const { Socket } = require('net');
-const { lookup } = require('dns/promises');
-const stats = require('@racker/janus-core/lib/stats');
-const log = require('@racker/janus-core/lib/log');
+import { Socket } from 'net';
+import { lookup } from 'dns/promises';
+import stats from '@racker/janus-core/lib/stats/index.js';
+import log from '@racker/janus-core/lib/log/index.js';
 
 interface TestTarget {
   host: string;
@@ -28,7 +28,7 @@ interface LambdaEvent {
   targets: TestTarget[];
 }
 
-exports.handler = async (event: LambdaEvent): Promise<TestResult[]> => {
+export const handler = async (event: LambdaEvent): Promise<TestResult[]> => {
   const env = process.env.ENVIRONMENT || 'unknown';
   
   log.initialize('connectivity-check', {
