@@ -1,6 +1,8 @@
 import { Socket } from 'net';
 import { lookup } from 'dns/promises';
+// @ts-ignore - janus-core doesn't have proper ES module type declarations
 import stats from '@racker/janus-core/lib/stats/index.js';
+// @ts-ignore - janus-core doesn't have proper ES module type declarations
 import log from '@racker/janus-core/lib/log/index.js';
 
 interface TestTarget {
