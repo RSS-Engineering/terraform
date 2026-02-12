@@ -1,10 +1,23 @@
 # Connectivity Check Module
 
-Terraform module for deploying a Lambda function that tests TCP and HTTPS connectivity to specified endpoints and publishes metrics to Datadog.
+Terraform module for deploying a Lambda function that tests TCP and HTTPS connectivity to specified endpoints and publishes metrics directly to Datadog.
+
+## Features
+
+- **ES Modules**: Lambda uses Node.js 22 with ES modules for modern JavaScript support
+- **Direct Datadog Integration**: Metrics sent directly via `@racker/janus-core` stats (no OpenTelemetry layer)
+- **Multi-region Support**: Designed to run in multiple regions with proper region tagging
+- **Parallel Execution**: Tests all endpoints concurrently for fast execution
+- **Flexible Protocols**: Supports TCP, HTTP, and HTTPS connectivity checks
 
 ## Lambda Package
 
-The Lambda function uses a pre-built package (`lambda.zip`) that includes the `@janus.team/janus-core` dependency. This approach ensures the module works across all consuming repositories without requiring npm authentication during terraform apply.
+The Lambda function uses a pre-built package (`lambda.zip`) that includes:
+- Compiled TypeScript (ES modules)
+- `@racker/janus-core` dependency for Datadog metrics
+- All required npm dependencies
+
+This approach ensures the module works across all consuming repositories without requiring npm authentication during terraform apply.
 
 ### Rebuilding the Lambda Package
 
@@ -38,8 +51,9 @@ module "connectivity_check" {
     }
   ]
   
-  datadog_api_key   = var.datadog_api_key
-  janus_environment = var.environment
+  datadog_api_key = var.datadog_api_key
+  environment     = var.environment
+  metric_tags     = "service:janus,team:platform,region:us-west-2"
 }
 ```
 
@@ -59,8 +73,9 @@ module "connectivity_check" {
 | monitoring_schedule | EventBridge schedule expression | string | "rate(1 minute)" | no |
 | monitoring_targets | List of endpoints to monitor | list(object) | [] | no |
 | datadog_api_key | Datadog API key | string | "" | no |
-| janus_environment | Environment name | string | "unknown" | no |
-| timeout | Lambda timeout in seconds | number | 10 | no |
+| environment | Environment name | string | "unknown" | no |
+| metric_tags | Additional tags for Datadog metrics (comma-separated) | string | "" | no |
+| timeout | Lambda timeout in seconds | number | 60 | no |
 | memory_size | Lambda memory in MB | number | 128 | no |
 | log_retention_days | CloudWatch log retention | number | 30 | no |
 
