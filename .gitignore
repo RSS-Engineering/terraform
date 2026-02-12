@@ -9,5 +9,8 @@ modules/lambda-layer-deps/examples/*/node_modules
 modules/lambda-layer-deps/examples/*/package.log
 .DS_Store
 
+# Ignore compiled JavaScript in lambda source directories (TypeScript compiles to JS during build)
+modules/connectivity_check/lambda/index.js
+
 # Allow pre-built Lambda packages
 !modules/connectivity_check/lambda.zip
