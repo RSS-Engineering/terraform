@@ -21,19 +21,17 @@ module "lambda" {
   create_package         = false
   local_existing_package = "${path.module}/lambda.zip"
   
-  layers = var.enable_monitoring ? [
-    "arn:aws:lambda:${data.aws_region.current.name}:901920570463:layer:aws-otel-nodejs-amd64-ver-1-7-0:2"
-  ] : []
+  # No layers needed - janus-core stats sends metrics directly to Datadog
+  layers = []
   
   environment_variables = merge(
     {
       NODE_OPTIONS = "--experimental-strip-types --experimental-transform-types"
     },
     var.enable_monitoring ? {
-      AWS_LAMBDA_EXEC_WRAPPER = "/opt/otel-handler"
-      DATADOG_API_KEY         = var.datadog_api_key
-      ENVIRONMENT             = var.environment
-      METRIC_TAGS             = var.metric_tags
+      DATADOG_API_KEY = var.datadog_api_key
+      ENVIRONMENT     = var.environment
+      METRIC_TAGS     = var.metric_tags
     } : {}
   )
 
