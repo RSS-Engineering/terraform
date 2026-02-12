@@ -16,7 +16,7 @@ variable "function_name" {
 variable "timeout" {
   description = "Lambda function timeout in seconds"
   type        = number
-  default     = 10
+  default     = 60
 }
 
 variable "memory_size" {
@@ -29,4 +29,48 @@ variable "log_retention_days" {
   description = "CloudWatch log retention in days"
   type        = number
   default     = 30
+}
+
+# Monitoring variables
+variable "enable_monitoring" {
+  description = "Enable scheduled monitoring with Datadog metrics"
+  type        = bool
+  default     = false
+}
+
+variable "monitoring_schedule" {
+  description = "EventBridge schedule expression for monitoring (e.g., 'rate(1 minute)')"
+  type        = string
+  default     = "rate(1 minute)"
+}
+
+variable "monitoring_targets" {
+  description = "List of targets to monitor"
+  type = list(object({
+    host     = string
+    port     = number
+    protocol = string
+    path     = optional(string)
+    critical = optional(bool, false)
+  }))
+  default = []
+}
+
+variable "datadog_api_key" {
+  description = "Datadog API key for publishing metrics (required when enable_monitoring = true)"
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+variable "environment" {
+  description = "Environment name (e.g., 'dev', 'prod')"
+  type        = string
+  default     = "unknown"
+}
+
+variable "metric_tags" {
+  description = "Additional tags to include in Datadog metrics (comma-separated string, e.g., 'team:platform,region:us-west-2')"
+  type        = string
+  default     = ""
 }

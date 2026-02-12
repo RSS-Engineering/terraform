@@ -16,17 +16,24 @@ module "lambda" {
   description   = "Tests TCP and HTTPS connectivity"
   handler       = "index.handler"
   runtime       = "nodejs22.x"
-  environment_variables = {
-    NODE_OPTIONS = "--experimental-strip-types --experimental-transform-types"
-  }
-
-  source_path = [
+  
+  # Use pre-built Lambda package
+  create_package         = false
+  local_existing_package = "${path.module}/lambda.zip"
+  
+  # No layers needed - janus-core stats sends metrics directly to Datadog
+  layers = []
+  
+  environment_variables = merge(
     {
-      path = "${path.module}/lambda"
-      # lambda has no npm dependencies, so this can be skipped
-      npm_requirements = false
-    }
-  ]
+      NODE_OPTIONS = "--experimental-strip-types --experimental-transform-types"
+    },
+    var.enable_monitoring ? {
+      DATADOG_API_KEY = var.datadog_api_key
+      ENVIRONMENT     = var.environment
+      METRIC_TAGS     = var.metric_tags
+    } : {}
+  )
 
   timeout     = var.timeout
   memory_size = var.memory_size
@@ -42,3 +49,5 @@ module "lambda" {
     connectivity_check_version = "v1"
   }
 }
+
+data "aws_region" "current" {}
