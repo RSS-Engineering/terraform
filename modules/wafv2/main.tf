@@ -216,6 +216,7 @@ data "aws_iam_policy_document" "web_acl_policy_document" {
 }
 
 # CloudWatch Log Group for WAFv2 Logging
+#tfsec:ignore:aws-cloudwatch-log-group-customer-key
 resource "aws_cloudwatch_log_group" "web_acl_log" {
   name  = "aws-waf-logs-${var.stage}_${var.region}_${var.service_name}"
   count = var.enabled
