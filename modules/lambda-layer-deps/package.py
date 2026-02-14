@@ -115,7 +115,7 @@ class ContentHash:
 
 class Workflow(ABC):
     def __init__(self, runtime, dependency_lock_file, dependency_file, docker_image=None,
-                 pre_package_commands=[]):
+                 pre_package_commands=[], use_ecr_image=False):
         self.runtime = runtime
         self.docker_image = docker_image
         self.pre_package_commands = pre_package_commands
@@ -123,8 +123,11 @@ class Workflow(ABC):
         self.package_dir = path.dirname(self.dependency_lock_file)
         self.dependency_file = path.join(self.package_dir, dependency_file)
         self.build_dir = './builds'
+        self.use_ecr_image = use_ecr_image
         if docker_image:
             self.docker_image = docker_image
+        elif self.use_ecr_image:
+            self.docker_image = 'public.ecr.aws/sam/build-{}'.format(self.runtime)
         else:
             self.docker_image = 'lambci/lambda:build-{}'.format(self.runtime)
 
@@ -174,8 +177,8 @@ class Workflow(ABC):
 
 
 class PoetryWorkflow(Workflow):
-    def __init__(self, runtime, dependency_lock_file, docker_image=None, pre_package_commands=[]):
-        super().__init__(runtime, dependency_lock_file, 'pyproject.toml', docker_image, pre_package_commands)
+    def __init__(self, runtime, dependency_lock_file, docker_image=None, pre_package_commands=[], use_ecr_image=False):
+        super().__init__(runtime, dependency_lock_file, 'pyproject.toml', docker_image, pre_package_commands, use_ecr_image)
 
     @property
     def pip_cmd(self):
@@ -197,8 +200,8 @@ class PoetryWorkflow(Workflow):
 
 
 class NpmWorkflow(Workflow):
-    def __init__(self, runtime, dependency_lock_file, docker_image=None, pre_package_commands=[]):
-        super().__init__(runtime, dependency_lock_file, 'package.json', docker_image, pre_package_commands)
+    def __init__(self, runtime, dependency_lock_file, docker_image=None, pre_package_commands=[], use_ecr_image=False):
+        super().__init__(runtime, dependency_lock_file, 'package.json', docker_image, pre_package_commands, use_ecr_image)
 
     def install(self):
         install_cmd = f'cd /var/task && npm install --production'
@@ -211,8 +214,8 @@ class NpmWorkflow(Workflow):
 
 
 class YarnWorkflow(Workflow):
-    def __init__(self, runtime, dependency_lock_file, docker_image=None, pre_package_commands=[]):
-        super().__init__(runtime, dependency_lock_file, 'package.json', docker_image, pre_package_commands)
+    def __init__(self, runtime, dependency_lock_file, docker_image=None, pre_package_commands=[], use_ecr_image=False):
+        super().__init__(runtime, dependency_lock_file, 'package.json', docker_image, pre_package_commands, use_ecr_image)
 
     def install(self):
         install_cmd = f'cd /var/task && yarn install --production'
@@ -238,7 +241,7 @@ def main():
 
     archive_file = workflow(
         query["runtime"], query["dependency_lock_file"], query.get("docker_image"),
-        json.loads(query.get("pre_package_commands"))).run()
+        json.loads(query.get("pre_package_commands")), query.get("use_ecr_image")).run()
 
     print(json.dumps({'output_path': archive_file}))
 
